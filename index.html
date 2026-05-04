@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Civil Checksheet Studio</title>
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Checksheet Studio" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark">CS</div>
+          <div>
+            <h1>Civil Checksheet Studio</h1>
+            <p>Field audit capture, evidence photos, editable drafts, PDF reports.</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="save-draft-btn" type="button">
+            <i data-lucide="save"></i>
+            Save draft
+          </button>
+          <button class="primary-button" id="export-pdf-btn" type="button">
+            <i data-lucide="file-down"></i>
+            Export PDF
+          </button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="sidebar" aria-label="Application sections">
+          <nav class="nav-stack">
+            <button class="nav-button active" type="button" data-tab="fill">
+              <i data-lucide="clipboard-check"></i>
+              Fill checksheet
+            </button>
+            <button class="nav-button" type="button" data-tab="templates">
+              <i data-lucide="layers"></i>
+              Templates
+            </button>
+            <button class="nav-button" type="button" data-tab="reports">
+              <i data-lucide="folder-open"></i>
+              Saved reports
+            </button>
+          </nav>
+
+          <section class="sidebar-panel">
+            <span class="eyebrow">Current audit</span>
+            <h2 id="sidebar-report-name">New audit</h2>
+            <div class="metric-grid" id="sidebar-metrics"></div>
+          </section>
+        </aside>
+
+        <section class="workspace" aria-live="polite">
+          <section class="view active" id="view-fill">
+            <div class="workspace-heading">
+              <div>
+                <span class="eyebrow">Field entry</span>
+                <h2>Fill and update the audit</h2>
+              </div>
+              <div class="inline-actions">
+                <select id="template-select" aria-label="Choose check sheet template"></select>
+                <button class="secondary-button" id="new-audit-btn" type="button">
+                  <i data-lucide="plus"></i>
+                  New audit
+                </button>
+              </div>
+            </div>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h3>Site and audit details</h3>
+                  <p>These values appear in the PDF report header.</p>
+                </div>
+              </div>
+              <div class="field-grid" id="audit-meta"></div>
+            </section>
+
+            <section class="summary-strip" id="audit-summary"></section>
+
+            <div id="checklist-sections"></div>
+          </section>
+
+          <section class="view" id="view-templates">
+            <div class="workspace-heading">
+              <div>
+                <span class="eyebrow">Admin</span>
+                <h2>Checksheet templates</h2>
+              </div>
+              <div class="inline-actions">
+                <button class="secondary-button" id="blank-template-btn" type="button">
+                  <i data-lucide="file-plus"></i>
+                  Blank template
+                </button>
+                <button class="primary-button" id="import-template-btn" type="button">
+                  <i data-lucide="upload"></i>
+                  Import check sheet
+                </button>
+              </div>
+            </div>
+
+            <input id="template-file" type="file" hidden accept=".xlsx,.xls,.csv,.json" />
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h3>Template library</h3>
+                  <p>Upload Excel check sheets with ID, checkpoint, criteria, status, and remarks columns.</p>
+                </div>
+              </div>
+              <div id="template-list" class="template-list"></div>
+            </section>
+
+            <section class="panel hidden" id="template-editor">
+              <div class="panel-heading">
+                <div>
+                  <h3>Edit template JSON</h3>
+                  <p>Advanced template changes are saved back into this browser app.</p>
+                </div>
+                <button class="ghost-button" id="close-template-editor" type="button">
+                  <i data-lucide="x"></i>
+                  Close
+                </button>
+              </div>
+              <textarea id="template-json" spellcheck="false"></textarea>
+              <div class="editor-actions">
+                <button class="secondary-button" id="format-template-json" type="button">
+                  <i data-lucide="braces"></i>
+                  Format
+                </button>
+                <button class="primary-button" id="save-template-json" type="button">
+                  <i data-lucide="check"></i>
+                  Save template
+                </button>
+              </div>
+            </section>
+          </section>
+
+          <section class="view" id="view-reports">
+            <div class="workspace-heading">
+              <div>
+                <span class="eyebrow">History</span>
+                <h2>Saved reports</h2>
+              </div>
+              <label class="search-box">
+                <i data-lucide="search"></i>
+                <input id="report-search" type="search" placeholder="Search site, user, template..." />
+              </label>
+            </div>
+            <div id="reports-list" class="reports-list"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <section id="print-root" aria-hidden="true"></section>
+  </body>
+</html>
