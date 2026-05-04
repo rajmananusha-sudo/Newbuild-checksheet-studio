@@ -10,7 +10,7 @@ For mobile field use, host this folder on a static website service such as GitHu
 
 ## What is included
 
-- Seeded template from `C1 & C2 Civil Check Sheet-A R1.xlsx`
+- Embedded templates from all supplied Excel check sheets
 - Editable site and audit details
 - Status, remarks, and actual values on checklist rows
 - Separate photographic documentation points from the workbook

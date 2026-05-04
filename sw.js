@@ -1,8 +1,9 @@
-const CACHE_NAME = "civil-checksheet-studio-v2";
+const CACHE_NAME = "civil-checksheet-studio-v3";
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./templates.js",
   "./app.js",
   "./manifest.webmanifest",
   "./icon.svg"

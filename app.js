@@ -471,16 +471,26 @@
   function loadState() {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      const templates = Array.isArray(stored.templates) ? stored.templates : [];
-      const hasDefault = templates.some((template) => template.id === defaultTemplate.id);
+      const storedTemplates = Array.isArray(stored.templates) ? stored.templates : [];
+      const builtInTemplates = getBuiltInTemplates();
+      const builtInIds = new Set(builtInTemplates.map((template) => template.id));
+      const customTemplates = storedTemplates.filter((template) => !builtInIds.has(template.id));
       return {
-        templates: hasDefault ? templates : [defaultTemplate, ...templates],
+        templates: [...builtInTemplates, ...customTemplates],
         submissions: Array.isArray(stored.submissions) ? stored.submissions : [],
         activeSubmissionId: stored.activeSubmissionId || null
       };
     } catch {
-      return { templates: [defaultTemplate], submissions: [], activeSubmissionId: null };
+      return { templates: getBuiltInTemplates(), submissions: [], activeSubmissionId: null };
     }
+  }
+
+  function getBuiltInTemplates() {
+    const externalTemplates =
+      Array.isArray(window.CHECKSHEET_TEMPLATES) && window.CHECKSHEET_TEMPLATES.length
+        ? window.CHECKSHEET_TEMPLATES
+        : [defaultTemplate];
+    return externalTemplates.map((template) => normalizeTemplate(template));
   }
 
   function saveState() {
