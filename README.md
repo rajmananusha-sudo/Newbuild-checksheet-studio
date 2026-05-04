@@ -1,4 +1,4 @@
-# Civil Checksheet Studio
+# NB Checksheet Studio
 
 This is a local browser app for filling civil audit check sheets, attaching evidence photos, editing saved drafts, importing more check sheet templates, and producing a print-ready PDF report.
 
