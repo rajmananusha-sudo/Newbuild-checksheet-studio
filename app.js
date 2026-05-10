@@ -2,6 +2,26 @@
   const STORAGE_KEY = "civil-checksheet-studio-v1";
   const PHOTO_LIMIT = 4;
   const STATUS_OPTIONS = ["Pending", "OK", "Not OK", "N/A"];
+  const STANDARD_SITE_FIELDS = [
+    { id: "site_id", label: "Site ID", type: "text", required: true },
+    { id: "site_name", label: "Site Name", type: "text", required: true },
+    { id: "country", label: "Country", type: "select", options: ["Uganda", "Zambia", "Nigeria"], required: true },
+    { id: "site_type", label: "Site Type", type: "select", options: ["GBT", "RTT", "RTP", "RTM", "GBM"], required: true },
+    { id: "build_partner", label: "Build Partner", type: "text" },
+    {
+      id: "quality_agency",
+      label: "Quality Agency",
+      type: "select",
+      options: ["Self Certified"],
+      allowOther: true,
+      otherLabel: "Enter agency name",
+      required: true
+    },
+    { id: "audit_engineer", label: "Audit Engineer", type: "text", required: true },
+    { id: "audit_date", label: "Date of Audit", type: "date", required: true },
+    { id: "audit_start_time", label: "Audit Start Time", type: "time" },
+    { id: "audit_end_time", label: "Audit End Time", type: "time" }
+  ];
 
   const defaultTemplate = {
     id: "tpl-c2-civil-stage-audit-r1",
@@ -527,8 +547,16 @@
       .join("");
 
     els.auditMeta.querySelectorAll("[data-meta]").forEach((input) => {
+      const eventName = input.tagName === "SELECT" ? "change" : "input";
+      input.addEventListener(eventName, () => {
+        updateMetaField(submission, input);
+      });
+    });
+
+    els.auditMeta.querySelectorAll("[data-meta-other]").forEach((input) => {
       input.addEventListener("input", () => {
-        submission.meta[input.dataset.meta] = input.value;
+        const fieldId = input.dataset.metaOther;
+        submission.meta[fieldId] = input.value;
         updateSubmissionTitle(submission);
         persistActiveSubmission(false);
         renderSidebar();
@@ -548,6 +576,35 @@
   function renderMetaField(field, value) {
     const type = field.type || "text";
     const required = field.required ? "required" : "";
+    if (type === "select") {
+      const options = field.options || [];
+      const isOther = Boolean(field.allowOther && value && !options.includes(value));
+      const selectedValue = isOther ? "__other__" : value;
+      return `
+        <div class="field-control">
+          <label for="meta-${escapeAttr(field.id)}">${escapeHtml(field.label)}${
+            field.required ? " *" : ""
+          }</label>
+          <select id="meta-${escapeAttr(field.id)}" data-meta="${escapeAttr(field.id)}" data-allow-other="${field.allowOther ? "true" : "false"}" ${required}>
+            <option value="">Select ${escapeHtml(field.label)}</option>
+            ${options
+              .map(
+                (option) =>
+                  `<option value="${escapeAttr(option)}" ${selectedValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+              )
+              .join("")}
+            ${field.allowOther ? `<option value="__other__" ${isOther ? "selected" : ""}>Other</option>` : ""}
+          </select>
+          ${
+            field.allowOther
+              ? `<input class="other-input ${isOther ? "" : "hidden"}" data-meta-other="${escapeAttr(field.id)}" value="${escapeAttr(
+                  isOther ? value : ""
+                )}" placeholder="${escapeAttr(field.otherLabel || "Enter value")}" />`
+              : ""
+          }
+        </div>
+      `;
+    }
     return `
       <div class="field-control">
         <label for="meta-${escapeAttr(field.id)}">${escapeHtml(field.label)}${
@@ -558,6 +615,21 @@
         )}" value="${escapeAttr(value)}" ${required} />
       </div>
     `;
+  }
+
+  function updateMetaField(submission, input) {
+    const fieldId = input.dataset.meta;
+    const otherInput = els.auditMeta.querySelector(`[data-meta-other="${fieldId}"]`);
+    if (input.dataset.allowOther === "true") {
+      const useOther = input.value === "__other__";
+      if (otherInput) otherInput.classList.toggle("hidden", !useOther);
+      submission.meta[fieldId] = useOther ? otherInput?.value || "" : input.value;
+    } else {
+      submission.meta[fieldId] = input.value;
+    }
+    updateSubmissionTitle(submission);
+    persistActiveSubmission(false);
+    renderSidebar();
   }
 
   function renderSummary(submission) {
@@ -663,11 +735,12 @@
         <label class="photo-label">Photos (${photos.length}/${PHOTO_LIMIT})</label>
         <label class="photo-drop">
           <i data-lucide="camera"></i>
-          ${remaining ? `Add up to ${remaining} photo${remaining === 1 ? "" : "s"}` : "Photo limit reached"}
+          ${remaining ? `Capture up to ${remaining} geo-tagged photo${remaining === 1 ? "" : "s"}` : "Photo limit reached"}
           <input type="file" data-photo-input hidden accept="image/*" capture="environment" multiple ${
             remaining ? "" : "disabled"
           } />
         </label>
+        <p class="photo-note">GPS permission is required. Timestamp and coordinates are saved with each photo.</p>
         <div class="photo-grid">
           ${photos
             .map(
@@ -675,6 +748,7 @@
                 <div class="photo-tile">
                   <img src="${escapeAttr(photo.src)}" alt="${escapeAttr(photo.caption || photo.name || "Evidence photo")}" />
                   <input data-caption-index="${index}" value="${escapeAttr(photo.caption || "")}" placeholder="Caption" />
+                  <div class="photo-meta">${escapeHtml(formatPhotoMeta(photo))}</div>
                   <div class="photo-toolbar">
                     <span title="${escapeAttr(photo.name || "Photo")}">${escapeHtml(photo.name || "Photo")}</span>
                     <button type="button" data-remove-photo="${index}" title="Remove photo">&times;</button>
@@ -945,6 +1019,7 @@
     const template = submission.templateSnapshot || state.templates.find((item) => item.id === submission.templateId) || defaultTemplate;
     submission.templateSnapshot = normalizeTemplate(template);
     submission.meta ||= {};
+    migrateStandardMeta(submission.meta);
     submission.itemResponses ||= {};
     submission.photoEvidence ||= {};
 
@@ -979,6 +1054,22 @@
     return state.submissions.find((submission) => submission.id === state.activeSubmissionId) || null;
   }
 
+  function migrateStandardMeta(meta) {
+    copyMetaIfEmpty(meta, "site_id", ["site_id_name", "site_id", "indus_site_id", "opco_site_id"]);
+    copyMetaIfEmpty(meta, "site_name", ["site_name", "site_name_address"]);
+    copyMetaIfEmpty(meta, "country", ["country_circle", "country_circle_name", "country"]);
+    copyMetaIfEmpty(meta, "quality_agency", ["quality_audit_agency", "quality_agency"]);
+    copyMetaIfEmpty(meta, "audit_date", ["date_of_audit", "date_of_inspection", "audit_date"]);
+    copyMetaIfEmpty(meta, "audit_start_time", ["audit_start_time"]);
+    copyMetaIfEmpty(meta, "audit_end_time", ["audit_end_time"]);
+  }
+
+  function copyMetaIfEmpty(meta, target, sources) {
+    if (meta[target]) return;
+    const source = sources.find((key) => meta[key]);
+    if (source) meta[target] = meta[source];
+  }
+
   function getItemResponse(submission, itemId) {
     submission.itemResponses[itemId] ||= { status: "Pending", remarks: "", photos: [] };
     return submission.itemResponses[itemId];
@@ -999,15 +1090,22 @@
     const available = PHOTO_LIMIT - photos.length;
     if (available <= 0) return;
     const selected = Array.from(files).slice(0, available);
+    let location;
+    try {
+      location = await getGeoTag();
+    } catch (error) {
+      alert(error.message);
+      return;
+    }
     for (const file of selected) {
-      photos.push(await fileToPhoto(file));
+      photos.push(await fileToPhoto(file, location));
     }
     if (files.length > available) {
       alert(`Only ${PHOTO_LIMIT} photos are allowed for this point.`);
     }
   }
 
-  function fileToPhoto(file) {
+  function fileToPhoto(file, location) {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith("image/")) {
         reject(new Error("Only image files can be uploaded."));
@@ -1015,27 +1113,36 @@
       }
       const reader = new FileReader();
       reader.onload = () => {
-        const image = new Image();
-        image.onload = () => {
-          const maxEdge = 1000;
-          const scale = Math.min(1, maxEdge / Math.max(image.width, image.height));
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(image.width * scale));
-          canvas.height = Math.max(1, Math.round(image.height * scale));
-          const context = canvas.getContext("2d");
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          resolve({
-            src: canvas.toDataURL("image/jpeg", 0.68),
-            name: file.name,
-            caption: "",
-            capturedAt: new Date().toISOString()
-          });
-        };
-        image.onerror = () => reject(new Error("Could not read the image."));
-        image.src = reader.result;
+        resolve({
+          src: reader.result,
+          name: file.name,
+          caption: "",
+          capturedAt: new Date().toISOString(),
+          location
+        });
       };
       reader.onerror = () => reject(new Error("Could not read the file."));
       reader.readAsDataURL(file);
+    });
+  }
+
+  function getGeoTag() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("GPS location is required for photo capture, but this browser does not support location."));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: Number(position.coords.latitude.toFixed(6)),
+            longitude: Number(position.coords.longitude.toFixed(6)),
+            accuracy: Math.round(position.coords.accuracy || 0)
+          });
+        },
+        () => reject(new Error("Please allow location permission. GPS coordinates are required before attaching photos.")),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
     });
   }
 
@@ -1231,13 +1338,16 @@
     if (!template.name) throw new Error("Template name is required.");
     const normalized = deepClone(template);
     normalized.id ||= uid("tpl");
-    normalized.siteFields = (normalized.siteFields?.length ? normalized.siteFields : defaultTemplate.siteFields).map(
-      (field) => ({
+    normalized.siteFields = standardizeSiteFields(
+      (normalized.siteFields?.length ? normalized.siteFields : defaultTemplate.siteFields).map((field) => ({
         id: field.id || slugify(field.label),
         label: field.label,
         type: field.type || "text",
+        options: field.options || [],
+        allowOther: Boolean(field.allowOther),
+        otherLabel: field.otherLabel || "",
         required: Boolean(field.required)
-      })
+      }))
     );
     normalized.sections = (normalized.sections || []).map((section, sectionIndex) => ({
       id: section.id || slugify(section.title || `section-${sectionIndex + 1}`),
@@ -1257,6 +1367,35 @@
       limit: PHOTO_LIMIT
     }));
     return normalized;
+  }
+
+  function standardizeSiteFields(fields) {
+    const standardized = STANDARD_SITE_FIELDS.map((field) => deepClone(field));
+    const existingIds = new Set(standardized.map((field) => field.id));
+    fields.forEach((field) => {
+      const label = field.label || "";
+      const normalizedLabel = label.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (shouldRemoveOrStandardizeField(normalizedLabel)) return;
+      const id = field.id || slugify(label);
+      if (existingIds.has(id)) return;
+      existingIds.add(id);
+      standardized.push({ ...field, id, label });
+    });
+    return standardized;
+  }
+
+  function shouldRemoveOrStandardizeField(label) {
+    if (!label) return true;
+    if (label.includes("solution type")) return true;
+    if (label.includes("site id") || label.includes("site name")) return true;
+    if (label === "country" || label.includes("country circle") || label.includes("circle name")) return true;
+    if (label.includes("site type")) return true;
+    if (label.includes("quality audit agency") || label === "quality agency") return true;
+    if (label.includes("date of audit") || label.includes("date of inspection")) return true;
+    if (label.includes("audit start time") || label.includes("audit end time")) return true;
+    if (label.includes("audit engineer") || label.includes("auditer name")) return true;
+    if (label.includes("build partner")) return true;
+    return false;
   }
 
   function renderPrintReport(submission) {
@@ -1308,7 +1447,7 @@
                   (photo) => `
                     <div class="print-photo">
                       <img src="${escapeAttr(photo.src)}" alt="${escapeAttr(photo.caption || photo.name || "Evidence")}" />
-                      <p>${escapeHtml(photo.caption || photo.name || "Evidence photo")}</p>
+                      <p>${escapeHtml(photo.caption || photo.name || "Evidence photo")}<br />${escapeHtml(formatPhotoMeta(photo))}</p>
                     </div>
                   `
                 )
@@ -1370,6 +1509,18 @@
       hour: "2-digit",
       minute: "2-digit"
     }).format(date);
+  }
+
+  function formatPhotoMeta(photo) {
+    const parts = [];
+    if (photo.capturedAt) parts.push(`Time: ${formatDateTime(photo.capturedAt)}`);
+    if (photo.location?.latitude && photo.location?.longitude) {
+      const accuracy = photo.location.accuracy ? ` +/-${photo.location.accuracy}m` : "";
+      parts.push(`GPS: ${photo.location.latitude}, ${photo.location.longitude}${accuracy}`);
+    } else {
+      parts.push("GPS: not captured");
+    }
+    return parts.join(" | ");
   }
 
   function refreshIcons() {

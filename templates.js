@@ -1855,6 +1855,345 @@ window.CHECKSHEET_TEMPLATES = [
     ]
   },
   {
+    "id": "tpl-rtp-pole-check-sheet-a-r1",
+    "name": "Roof Top Pole site Acceptance Checksheet",
+    "revision": "Embedded",
+    "source": "RTP Pole Check Sheet A R1.xlsx",
+    "siteFields": [
+      {
+        "id": "site_id",
+        "label": "Site ID",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "site_name",
+        "label": "Site Name",
+        "type": "text"
+      },
+      {
+        "id": "country_circle",
+        "label": "Country / Circle",
+        "type": "text"
+      },
+      {
+        "id": "district_area",
+        "label": "District / Area",
+        "type": "text"
+      },
+      {
+        "id": "site_type",
+        "label": "Site Type",
+        "type": "text"
+      },
+      {
+        "id": "tower_type",
+        "label": "Tower Type",
+        "type": "text"
+      },
+      {
+        "id": "solution_type",
+        "label": "Solution Type",
+        "type": "text"
+      },
+      {
+        "id": "build_partner",
+        "label": "Build Partner",
+        "type": "text"
+      },
+      {
+        "id": "quality_audit_agency",
+        "label": "Quality Audit Agency",
+        "type": "text"
+      },
+      {
+        "id": "audit_engineer",
+        "label": "Audit Engineer",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "audit_date",
+        "label": "Date of Audit",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "audit_start_time",
+        "label": "Audit Start Time",
+        "type": "time"
+      },
+      {
+        "id": "audit_end_time",
+        "label": "Audit End Time",
+        "type": "time"
+      },
+      {
+        "id": "site-id-name",
+        "label": "Site ID/Name",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "site-name-address",
+        "label": "Site Name/Address",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "country",
+        "label": "Country",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "pole-height",
+        "label": "Pole Height",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "wind-speed",
+        "label": "Wind Speed",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "date-of-inspection",
+        "label": "Date of Inspection",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "partner-tsp-name",
+        "label": "Partner (TSP) Name",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "id": "roof-top-pole-site-acceptance-checksheet",
+        "title": "Roof Top Pole site Acceptance Checksheet",
+        "description": "",
+        "items": [
+          {
+            "id": "1",
+            "item": "Feasibility & PDI",
+            "criteria": "Fill the required field values and remarks.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "1.1",
+            "item": "Stability Certificate",
+            "criteria": "SSC from approved agency with site-specific details.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "1.2",
+            "item": "PDI Verification",
+            "criteria": "PDI Report checked; PDI stamps present on pole.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "1.3",
+            "item": "NDT Report",
+            "criteria": "Existing RCC concrete min. M20 grade and slab thickness ≥110 mm as confirmed through structural report / NDT",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "1.4",
+            "item": "Pole Height / Design",
+            "criteria": "Pole height verified as per approved design (3/4/6/9 m)",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "1.5",
+            "item": "Pole & Bracing Location",
+            "criteria": "Poles and bracings are installed over the RCC structure as per the approved layout.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2",
+            "item": "Structural Erection",
+            "criteria": "Fill the required field values and remarks.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.1",
+            "item": "Hilti Anchoring",
+            "criteria": "HIT-V M12; HY200 chemical (check expiry); 75mm depth, Anchor dia and length must be as per approved drawing requirement.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.2",
+            "item": "Pole installation as per Drawing",
+            "criteria": "Pole installation strictly as per approved drawing & guideline",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.3",
+            "item": "Bore Hole Quality",
+            "criteria": "Cleaned twice with air and brush; no over-drilling.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.4",
+            "item": "Member Integrity",
+            "criteria": "No crack, dent, deformation, welding cut, gas cutting, hole enlargement or damage.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.5",
+            "item": "Galvanization",
+            "criteria": "85 microns thickness as per IS: 4759 & 2629.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.6",
+            "item": "Tightening",
+            "criteria": "Torque applied as per grade (e.g., M16/8.8 = 175 Nm).",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.7",
+            "item": "Leveling",
+            "criteria": "Verticality within 1 in 360; checked via plumb line.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "2.8",
+            "item": "Safety Guard Ribs",
+            "criteria": "Properly fixed per drawing",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "3",
+            "item": "Civil & Foundation",
+            "criteria": "Fill the required field values and remarks.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "3.1",
+            "item": "Concrete Grade",
+            "criteria": "M20 grade for slabs, columns, and pedestals.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "3.2",
+            "item": "Steel Verification",
+            "criteria": "Rebar size and count match the approved drawing.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "3.3",
+            "item": "Shuttering",
+            "criteria": "Oil-based, line-leveled, tightened with no gaps.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "3.4",
+            "item": "Material Quality",
+            "criteria": "Fresh cement (OPC/PPC); Coarse and fine aggregates are free from impurities.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "4",
+            "item": "Earthing",
+            "criteria": "Fill the required field values and remarks.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "4.1",
+            "item": "Pit Scheme",
+            "criteria": "Chemical earthing only; pit distance ≥ 3 meters.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "4.2",
+            "item": "Electrode Spec",
+            "criteria": "Solid steel rod; 12.5mm dia x 3m length; UL marked.",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "4.3",
+            "item": "Pit Chamber",
+            "criteria": "Fiber make or Pre-cast (Hume pipe 300x1000mm).",
+            "inputLabel": "Ref # / Remarks"
+          },
+          {
+            "id": "III. Mandatory Audit Compliance",
+            "item": "Audit Compliance",
+            "criteria": "Remarks: Audit Compliance",
+            "inputLabel": "Ref # / Remarks"
+          }
+        ]
+      }
+    ],
+    "photoRequirements": [
+      {
+        "id": "photo-1-start-selfie",
+        "title": "1. Start Selfie",
+        "requirement": "Audit engineer with the site background clearly visible at the start of the inspection.",
+        "limit": 4
+      },
+      {
+        "id": "photo-2-pdi-proof",
+        "title": "2. PDI Proof",
+        "requirement": "Nuance: A clear, legible close-up of the PDI stamp on the pole structure vs. the PDI report.",
+        "limit": 4
+      },
+      {
+        "id": "photo-3-hilti-execution",
+        "title": "3. Hilti Execution",
+        "requirement": "Nuance: Capturing the cleaning of the bore hole (brushing/blowing) and the expiry date on the HY200 chemical tube.",
+        "limit": 4
+      },
+      {
+        "id": "photo-4-alignment",
+        "title": "4. Alignment",
+        "requirement": "Spirit level or plumb line in two perpendicular directions showing verticality compliance.",
+        "limit": 4
+      },
+      {
+        "id": "photo-5-torque-check",
+        "title": "5. Torque Check",
+        "requirement": "Nuance: Photo of the Torque Wrench applied to a bolt showing the specific Nm value achieved.",
+        "limit": 4
+      },
+      {
+        "id": "photo-6-reinforcement",
+        "title": "6. Reinforcement",
+        "requirement": "Close-up of the steel rebar count and size before concreting to match the structural drawing.",
+        "limit": 4
+      },
+      {
+        "id": "photo-7-material-trace",
+        "title": "7. Material Trace",
+        "requirement": "Labels on cement bags showing brand, grade, and date of manufacture to ensure they are not expired.",
+        "limit": 4
+      },
+      {
+        "id": "photo-8-earthing-detail",
+        "title": "8. Earthing Detail",
+        "requirement": "Nuance: The UL marking and manufacturer name engraved on the electrode before it is lowered into the pit.",
+        "limit": 4
+      },
+      {
+        "id": "photo-9-finish-state",
+        "title": "9. Finish State",
+        "requirement": "Overall view of the site showing proper workmanship, non-visible reinforcement, and pedestals.",
+        "limit": 4
+      },
+      {
+        "id": "photo-10-exit-selfie",
+        "title": "10. Exit Selfie",
+        "requirement": "Engineer with the completed, rectified, or inspected site installation in the background.",
+        "limit": 4
+      }
+    ]
+  },
+  {
     "id": "tpl-site-electrification-acceptance-checksheet",
     "name": "Site Electrification Acceptance Checksheet",
     "revision": "Embedded",

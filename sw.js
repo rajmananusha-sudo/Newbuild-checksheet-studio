@@ -1,4 +1,4 @@
-const CACHE_NAME = "civil-checksheet-studio-v3";
+const CACHE_NAME = "civil-checksheet-studio-v5";
 const APP_ASSETS = [
   "./",
   "./index.html",

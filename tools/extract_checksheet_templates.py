@@ -166,7 +166,10 @@ def is_section_title(value):
 
 def is_header_row(row):
     low = [clean_text(cell).lower() for cell in row]
-    has_id = any(cell in {"id", "s.no", "s.no.", "sr no", "sl no", "ref"} for cell in low)
+    has_id = any(
+        cell in {"id", "s.no", "s.no.", "sr no", "sl no", "ref"} or cell.startswith("ref")
+        for cell in low
+    )
     has_item = any(
         any(term in cell for term in ["checkpoint", "description", "requirement", "item", "parameter"])
         for cell in low
@@ -395,6 +398,56 @@ def parse_numbered_photos(workbook, seen_keys):
     return photos
 
 
+def parse_photo_documentation_list(workbook, seen_keys):
+    photos = []
+    used_ids = set()
+    for ws in workbook.worksheets:
+        in_photo_section = False
+        row_index = 1
+        while row_index <= ws.max_row:
+            row = row_values(ws, row_index)
+            cells = meaningful_cells(row)
+            first = cells[0] if cells else ""
+            joined = " ".join(cells).lower()
+            if "photographic documentation" in joined or "photographic evidence" in joined:
+                in_photo_section = True
+                row_index += 1
+                continue
+            if in_photo_section and re.search(r"audit conclusion|mandatory audit compliance", joined, re.I):
+                break
+            match = re.match(r"^(\d+)\.\s+(.+)$", first)
+            if in_photo_section and match:
+                number = match.group(1)
+                title_text = match.group(2).strip()
+                cursor = row_index + 1
+                requirement = ""
+                while cursor <= ws.max_row:
+                    next_cells = meaningful_cells(row_values(ws, cursor))
+                    next_first = next_cells[0] if next_cells else ""
+                    if next_cells:
+                        if re.match(r"^\d+\.\s+.+$", next_first) or re.search(r"audit conclusion", " ".join(next_cells), re.I):
+                            break
+                        requirement = " ".join(next_cells)
+                        break
+                    cursor += 1
+                title = f"{number}. {title_text}"
+                key = slugify(title + requirement)
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    photos.append(
+                        {
+                            "id": unique_slug(f"photo-{number}-{title_text}", used_ids),
+                            "title": title,
+                            "requirement": requirement or title,
+                            "limit": PHOTO_LIMIT,
+                        }
+                    )
+                row_index = max(cursor, row_index + 1)
+                continue
+            row_index += 1
+    return photos
+
+
 def parse_ref_photo_table(workbook, seen_keys):
     photos = []
     used_ids = set()
@@ -443,6 +496,9 @@ def extract_photo_requirements(workbook):
     placeholder_photos = parse_placeholder_photos(workbook, seen_keys)
     if placeholder_photos:
         return placeholder_photos
+    documentation_photos = parse_photo_documentation_list(workbook, seen_keys)
+    if documentation_photos:
+        return documentation_photos
     return parse_numbered_photos(workbook, seen_keys)
 
 
