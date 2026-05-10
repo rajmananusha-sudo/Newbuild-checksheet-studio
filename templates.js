@@ -2120,12 +2120,37 @@ window.CHECKSHEET_TEMPLATES = [
             "item": "Pit Chamber",
             "criteria": "Fiber make or Pre-cast (Hume pipe 300x1000mm).",
             "inputLabel": "Ref # / Remarks"
+          }
+        ]
+      },
+      {
+        "id": "audit-compliance",
+        "title": "III. Mandatory Audit Compliance",
+        "description": "Answer each compliance requirement as OK, Not OK, or N/A and add complete details where needed.",
+        "items": [
+          {
+            "id": "AC-01",
+            "item": "Drawing Compliance",
+            "criteria": "Drawing Compliance: Every stage (Site Selection, Erection, Civil, and Earthing) uses \"As per approved drawing\" as the primary pass/fail benchmark.",
+            "inputLabel": "Complete Details / Remarks"
           },
           {
-            "id": "III. Mandatory Audit Compliance",
-            "item": "Audit Compliance",
-            "criteria": "Remarks: Audit Compliance",
-            "inputLabel": "Ref # / Remarks"
+            "id": "AC-02",
+            "item": "Verification of \"Stamping\"",
+            "criteria": "Verification of \"Stamping\": The requirement to verify a physical \"stamp\" is consistent for structural members (PDI stamp), pipe sections (IS 1161 stamp), and electrodes (UL/Manufacturer marking).",
+            "inputLabel": "Complete Details / Remarks"
+          },
+          {
+            "id": "AC-03",
+            "item": "Presence During Execution",
+            "criteria": "Presence During Execution: High-stakes activities, including Hilti chemical grouting, steel rebaring, and concreting, are strictly required to be performed in the presence of the audit engineer.",
+            "inputLabel": "Complete Details / Remarks"
+          },
+          {
+            "id": "AC-04",
+            "item": "Tool-Based Verification",
+            "criteria": "Tool-Based Verification: Physical measurements are not solely visual; specific tools like Torque Wrenches, Spirit Levels, Plumb Lines, and Elcometers are required for validation.",
+            "inputLabel": "Complete Details / Remarks"
           }
         ]
       }

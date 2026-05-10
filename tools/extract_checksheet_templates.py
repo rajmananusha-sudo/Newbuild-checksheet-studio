@@ -214,6 +214,7 @@ def is_stop_row(row):
     return (
         is_section_title(first)
         or is_header_row(row)
+        or "mandatory audit compliance" in joined
         or "photograph" in joined
         or "photo placeholder" in joined
         or "signature" in joined
@@ -327,6 +328,61 @@ def extract_installation_requirement_sections(workbook, existing_sections):
                         "id": unique_slug(f"{ws.title} installation requirements", {s["id"] for s in existing_sections + sections}),
                         "title": "Significant Installation Phases & Requirements",
                         "description": "Capture the listed installation values or remarks from the original check sheet.",
+                        "items": items,
+                    }
+                )
+    return sections
+
+
+def extract_audit_compliance_sections(workbook, existing_sections):
+    sections = []
+    existing_ids = {section["id"] for section in existing_sections}
+    for ws in workbook.worksheets:
+        for row_index in range(1, ws.max_row + 1):
+            cells = meaningful_cells(row_values(ws, row_index))
+            joined = " ".join(cells).lower()
+            if not cells or "mandatory audit compliance" not in joined:
+                continue
+
+            items = []
+            cursor = row_index + 1
+            while cursor <= ws.max_row:
+                row = row_values(ws, cursor)
+                cells = meaningful_cells(row)
+                row_text = " ".join(cells)
+                row_low = row_text.lower()
+                if not row_text:
+                    cursor += 1
+                    continue
+                if (
+                    "photographic documentation" in row_low
+                    or "photographic evidence" in row_low
+                    or "audit conclusion" in row_low
+                    or row_low.startswith("iv.")
+                    or row_low.startswith("v.")
+                ):
+                    break
+
+                for cell in cells:
+                    if len(cell) < 20:
+                        continue
+                    title = cell.split(":", 1)[0].strip() if ":" in cell else f"Audit Compliance {len(items) + 1}"
+                    items.append(
+                        {
+                            "id": f"AC-{len(items) + 1:02d}",
+                            "item": title,
+                            "criteria": cell,
+                            "inputLabel": "Complete Details / Remarks",
+                        }
+                    )
+                cursor += 1
+
+            if items:
+                sections.append(
+                    {
+                        "id": unique_slug("audit-compliance", existing_ids),
+                        "title": "III. Mandatory Audit Compliance",
+                        "description": "Answer each compliance requirement as OK, Not OK, or N/A and add complete details where needed.",
                         "items": items,
                     }
                 )
@@ -506,6 +562,7 @@ def build_template(path):
     workbook = openpyxl.load_workbook(path, data_only=False)
     title = first_meaningful_title(workbook, path)
     sections = extract_structured_sections(workbook)
+    sections.extend(extract_audit_compliance_sections(workbook, sections))
     sections.extend(extract_installation_requirement_sections(workbook, sections))
     template = {
         "id": ID_OVERRIDES.get(path.name, f"tpl-{slugify(path.stem)}"),
@@ -522,7 +579,7 @@ def build_template(path):
 def main():
     source_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(r"C:\Users\HP\OneDrive\Desktop\Checksheet")
     output_path = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("templates.js")
-    templates = [build_template(path) for path in sorted(source_dir.glob("*.xlsx"))]
+    templates = [build_template(path) for path in sorted(source_dir.glob("*.xlsx")) if not path.name.startswith("~$")]
     output = "window.CHECKSHEET_TEMPLATES = "
     output += json.dumps(templates, ensure_ascii=False, indent=2)
     output += ";\n"
