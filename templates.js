@@ -80,8 +80,8 @@ window.CHECKSHEET_TEMPLATES = [
         "required": false
       },
       {
-        "id": "country-tower-height",
-        "label": "Country / Tower Height",
+        "id": "tower-height",
+        "label": "Tower Height",
         "type": "text",
         "required": false
       },
@@ -448,8 +448,8 @@ window.CHECKSHEET_TEMPLATES = [
         "required": false
       },
       {
-        "id": "country-tower-height",
-        "label": "Country / Tower Height",
+        "id": "tower-height",
+        "label": "Tower Height",
         "type": "text",
         "required": false
       },
@@ -3153,8 +3153,8 @@ window.CHECKSHEET_TEMPLATES = [
         "required": false
       },
       {
-        "id": "country-tower-height",
-        "label": "Country / Tower Height",
+        "id": "tower-height",
+        "label": "Tower Height",
         "type": "text",
         "required": false
       }

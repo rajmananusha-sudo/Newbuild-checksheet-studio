@@ -118,6 +118,8 @@ def extract_field_labels_from_cell(cell):
     text = clean_text(cell)
     if not text:
         return []
+    if re.search(r"\bcountry\s*/\s*tower\s*height\b", text, re.I):
+        return ["Tower Height"]
     labels = []
     colon_matches = re.findall(r"([A-Za-z0-9/&(). -]{2,45})\s*:", text)
     if colon_matches:

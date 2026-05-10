@@ -6,6 +6,7 @@
     { id: "site_id", label: "Site ID", type: "text", required: true },
     { id: "site_name", label: "Site Name", type: "text", required: true },
     { id: "country", label: "Country", type: "select", options: ["Uganda", "Zambia", "Nigeria"], required: true },
+    { id: "tower_height", label: "Tower Height", type: "text" },
     { id: "site_type", label: "Site Type", type: "select", options: ["GBT", "RTT", "RTP", "RTM", "GBM"], required: true },
     { id: "build_partner", label: "Build Partner", type: "text" },
     {
