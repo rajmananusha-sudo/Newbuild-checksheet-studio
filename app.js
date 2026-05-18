@@ -515,7 +515,14 @@
   }
 
   function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      alert(
+        "This browser could not store the draft. New photos are compressed without cropping, but older large photos may still be using the phone storage. Please remove older photos from this draft and try again."
+      );
+      throw error;
+    }
   }
 
   function render() {
@@ -1059,6 +1066,7 @@
     copyMetaIfEmpty(meta, "site_id", ["site_id_name", "site_id", "indus_site_id", "opco_site_id"]);
     copyMetaIfEmpty(meta, "site_name", ["site_name", "site_name_address"]);
     copyMetaIfEmpty(meta, "country", ["country_circle", "country_circle_name", "country"]);
+    copyMetaIfEmpty(meta, "tower_height", ["tower_height", "country-tower-height", "country_tower_height"]);
     copyMetaIfEmpty(meta, "quality_agency", ["quality_audit_agency", "quality_agency"]);
     copyMetaIfEmpty(meta, "audit_date", ["date_of_audit", "date_of_inspection", "audit_date"]);
     copyMetaIfEmpty(meta, "audit_start_time", ["audit_start_time"]);
@@ -1114,17 +1122,42 @@
       }
       const reader = new FileReader();
       reader.onload = () => {
-        resolve({
-          src: reader.result,
-          name: file.name,
-          caption: "",
-          capturedAt: new Date().toISOString(),
-          location
-        });
+        const originalSrc = reader.result;
+        const image = new Image();
+        image.onload = () => {
+          const maxEdge = 1280;
+          const naturalWidth = image.naturalWidth || image.width;
+          const naturalHeight = image.naturalHeight || image.height;
+          const scale = Math.min(1, maxEdge / Math.max(naturalWidth, naturalHeight));
+          const width = Math.max(1, Math.round(naturalWidth * scale));
+          const height = Math.max(1, Math.round(naturalHeight * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext("2d");
+          context.drawImage(image, 0, 0, width, height);
+          resolve(buildPhotoRecord(canvas.toDataURL("image/jpeg", 0.72), file, location));
+        };
+        image.onerror = () => {
+          resolve(buildPhotoRecord(originalSrc, file, location));
+        };
+        image.src = originalSrc;
       };
       reader.onerror = () => reject(new Error("Could not read the file."));
       reader.readAsDataURL(file);
     });
+  }
+
+  function buildPhotoRecord(src, file, location) {
+    return {
+      src,
+      name: file.name,
+      caption: "",
+      capturedAt: new Date().toISOString(),
+      location,
+      originalType: file.type,
+      originalSize: file.size
+    };
   }
 
   function getGeoTag() {
@@ -1389,6 +1422,7 @@
     if (!label) return true;
     if (label.includes("solution type")) return true;
     if (label.includes("site id") || label.includes("site name")) return true;
+    if (label.includes("country") && label.includes("tower height")) return true;
     if (label === "country" || label.includes("country circle") || label.includes("circle name")) return true;
     if (label.includes("site type")) return true;
     if (label.includes("quality audit agency") || label === "quality agency") return true;
