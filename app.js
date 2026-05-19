@@ -6,6 +6,9 @@
   const PHOTO_PLACEHOLDER =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 480'%3E%3Crect width='640' height='480' fill='%23e2e8f0'/%3E%3Cpath d='M188 304l74-86 58 68 42-48 90 104H188z' fill='%2394a3b8'/%3E%3Ccircle cx='432' cy='162' r='34' fill='%23cbd5e1'/%3E%3C/svg%3E";
   const PHOTO_LIMIT = 4;
+  const UPDATED_CONCRETE_GRADE_CRITERIA =
+    "Mix Grade M20 (20 MPA); Ratio 1:1.5:3.\nMix Grade M25 (25MPA); Ratio 1:1:2";
+  const CONCRETE_GRADE_TEMPLATE_IDS = new Set(["tpl-c2-civil-stage-audit-r1", "tpl-c3-civil-check-sheet-a-r1"]);
   const STATUS_OPTIONS = ["Pending", "OK", "Not OK", "N/A"];
   const STANDARD_SITE_FIELDS = [
     { id: "site_id", label: "Site ID", type: "text", required: true },
@@ -203,7 +206,7 @@
           {
             id: "5.1",
             item: "Concrete Grade",
-            criteria: "Mix Grade M20; Ratio 1:1.5:3.",
+            criteria: UPDATED_CONCRETE_GRADE_CRITERIA,
             inputLabel: "Remarks"
           },
           {
@@ -1541,7 +1544,19 @@
       requirement: requirement.requirement || "",
       limit: PHOTO_LIMIT
     }));
+    applyTemplateTextMigrations(normalized);
     return normalized;
+  }
+
+  function applyTemplateTextMigrations(template) {
+    if (!CONCRETE_GRADE_TEMPLATE_IDS.has(template.id)) return;
+    template.sections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.id === "5.1" && /concrete grade/i.test(item.item || "")) {
+          item.criteria = UPDATED_CONCRETE_GRADE_CRITERIA;
+        }
+      });
+    });
   }
 
   function standardizeSiteFields(fields) {

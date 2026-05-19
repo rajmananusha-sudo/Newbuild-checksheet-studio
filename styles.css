@@ -101,6 +101,10 @@ button {
   line-height: 1.45;
 }
 
+.checkpoint-criteria {
+  white-space: pre-line;
+}
+
 .topbar-actions,
 .inline-actions,
 .editor-actions,
@@ -842,6 +846,7 @@ button svg,
     border: 1px solid #94a3b8;
     padding: 5px;
     vertical-align: top;
+    white-space: pre-line;
   }
 
   .print-table th {

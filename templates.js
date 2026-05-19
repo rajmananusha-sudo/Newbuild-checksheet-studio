@@ -249,7 +249,7 @@ window.CHECKSHEET_TEMPLATES = [
           {
             "id": "5.1",
             "item": "Concrete Grade",
-            "criteria": "Mix Grade M20; Ratio 1:1.5:3.",
+            "criteria": "Mix Grade M20 (20 MPA); Ratio 1:1.5:3.\nMix Grade M25 (25MPA); Ratio 1:1:2",
             "inputLabel": "Remarks"
           },
           {
@@ -635,7 +635,7 @@ window.CHECKSHEET_TEMPLATES = [
           {
             "id": "5.1",
             "item": "Concrete Grade",
-            "criteria": "Mix Grade M20; Ratio 1:1.5:3.",
+            "criteria": "Mix Grade M20 (20 MPA); Ratio 1:1.5:3.\nMix Grade M25 (25MPA); Ratio 1:1:2",
             "inputLabel": "Remarks"
           },
           {
