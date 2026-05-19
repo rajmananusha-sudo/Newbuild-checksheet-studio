@@ -1,5 +1,10 @@
 (function () {
   const STORAGE_KEY = "civil-checksheet-studio-v1";
+  const PHOTO_DB_NAME = "civil-checksheet-photo-store";
+  const PHOTO_DB_VERSION = 1;
+  const PHOTO_STORE_NAME = "photos";
+  const PHOTO_PLACEHOLDER =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 480'%3E%3Crect width='640' height='480' fill='%23e2e8f0'/%3E%3Cpath d='M188 304l74-86 58 68 42-48 90 104H188z' fill='%2394a3b8'/%3E%3Ccircle cx='432' cy='162' r='34' fill='%23cbd5e1'/%3E%3C/svg%3E";
   const PHOTO_LIMIT = 4;
   const STATUS_OPTIONS = ["Pending", "OK", "Not OK", "N/A"];
   const STANDARD_SITE_FIELDS = [
@@ -336,6 +341,8 @@
   let state = loadState();
   let activeTab = "fill";
   let editingTemplateId = null;
+  let photoDbPromise = null;
+  const photoSrcCache = new Map();
 
   const els = {};
 
@@ -348,6 +355,8 @@
       createSubmission(firstTemplate);
     }
     render();
+    requestPersistentStorage();
+    migrateLegacyPhotoBodies();
   });
 
   function cacheElements() {
@@ -401,11 +410,11 @@
       toast("Draft saved in this browser.");
     });
 
-    els.exportPdfBtn.addEventListener("click", () => {
+    els.exportPdfBtn.addEventListener("click", async () => {
       persistActiveSubmission();
       const submission = getActiveSubmission();
       if (!submission) return;
-      renderPrintReport(submission);
+      await renderPrintReport(submission);
       setTimeout(() => window.print(), 100);
     });
 
@@ -519,10 +528,51 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
       alert(
-        "This browser could not store the draft. New photos are compressed without cropping, but older large photos may still be using the phone storage. Please remove older photos from this draft and try again."
+        "This browser could not store the draft. Photos now use offline browser storage, but this phone may still be full. Please remove a few old photos or clear space and try again."
       );
       throw error;
     }
+  }
+
+  async function migrateLegacyPhotoBodies() {
+    const legacyPhotos = [];
+    state.submissions.forEach((submission) => {
+      getPhotoBuckets(submission).forEach((bucket) => {
+        bucket.forEach((photo) => {
+          if (photo?.src) legacyPhotos.push(photo);
+        });
+      });
+    });
+    if (!legacyPhotos.length) return;
+
+    let changed = false;
+    for (const photo of legacyPhotos) {
+      const storageKey = getPhotoStorageKey(photo) || uid("photo");
+      try {
+        await putPhotoSrc(storageKey, photo.src);
+        photoSrcCache.set(storageKey, photo.src);
+        photo.id = storageKey;
+        photo.storageKey = storageKey;
+        photo.storage = "indexedDB";
+        delete photo.src;
+        changed = true;
+      } catch {
+        photo.storage = "inline";
+      }
+    }
+
+    if (changed) {
+      saveState();
+      render();
+      toast("Photo storage upgraded for this browser.");
+    }
+  }
+
+  function getPhotoBuckets(submission) {
+    return [
+      ...Object.values(submission?.itemResponses || {}).map((response) => response.photos || []),
+      ...Object.values(submission?.photoEvidence || {}).map((evidence) => evidence.photos || [])
+    ];
   }
 
   function render() {
@@ -578,6 +628,7 @@
     ].join("");
 
     bindChecklistEvents(submission);
+    hydratePhotoImages(els.checklistSections);
     refreshIcons();
   }
 
@@ -754,7 +805,7 @@
             .map(
               (photo, index) => `
                 <div class="photo-tile">
-                  <img src="${escapeAttr(photo.src)}" alt="${escapeAttr(photo.caption || photo.name || "Evidence photo")}" />
+                  <img data-photo-ref="${escapeAttr(getPhotoStorageKey(photo))}" src="${escapeAttr(getPhotoRenderSrc(photo))}" alt="${escapeAttr(photo.caption || photo.name || "Evidence photo")}" />
                   <input data-caption-index="${index}" value="${escapeAttr(photo.caption || "")}" placeholder="Caption" />
                   <div class="photo-meta">${escapeHtml(formatPhotoMeta(photo))}</div>
                   <div class="photo-toolbar">
@@ -966,7 +1017,7 @@
     refreshIcons();
   }
 
-  function handleReportAction(action, reportId) {
+  async function handleReportAction(action, reportId) {
     const submission = state.submissions.find((item) => item.id === reportId);
     if (!submission) return;
 
@@ -977,7 +1028,7 @@
       render();
     }
     if (action === "pdf") {
-      renderPrintReport(submission);
+      await renderPrintReport(submission);
       setTimeout(() => window.print(), 100);
     }
     if (action === "copy") {
@@ -1107,7 +1158,11 @@
       return;
     }
     for (const file of selected) {
-      photos.push(await fileToPhoto(file, location));
+      try {
+        photos.push(await fileToPhoto(file, location));
+      } catch (error) {
+        alert(error.message || "Could not store this photo.");
+      }
     }
     if (files.length > available) {
       alert(`Only ${PHOTO_LIMIT} photos are allowed for this point.`);
@@ -1136,10 +1191,10 @@
           canvas.height = height;
           const context = canvas.getContext("2d");
           context.drawImage(image, 0, 0, width, height);
-          resolve(buildPhotoRecord(canvas.toDataURL("image/jpeg", 0.72), file, location));
+          storePhotoRecord(canvas.toDataURL("image/jpeg", 0.72), file, location).then(resolve).catch(reject);
         };
         image.onerror = () => {
-          resolve(buildPhotoRecord(originalSrc, file, location));
+          storePhotoRecord(originalSrc, file, location).then(resolve).catch(reject);
         };
         image.src = originalSrc;
       };
@@ -1148,9 +1203,23 @@
     });
   }
 
-  function buildPhotoRecord(src, file, location) {
+  async function storePhotoRecord(src, file, location) {
+    const storageKey = uid("photo");
+    photoSrcCache.set(storageKey, src);
+    const record = buildPhotoRecord(storageKey, file, location);
+    try {
+      await putPhotoSrc(storageKey, src);
+      return record;
+    } catch (error) {
+      return { ...record, src, storage: "inline" };
+    }
+  }
+
+  function buildPhotoRecord(storageKey, file, location) {
     return {
-      src,
+      id: storageKey,
+      storage: "indexedDB",
+      storageKey,
       name: file.name,
       caption: "",
       capturedAt: new Date().toISOString(),
@@ -1158,6 +1227,78 @@
       originalType: file.type,
       originalSize: file.size
     };
+  }
+
+  function getPhotoStorageKey(photo) {
+    return photo?.storageKey || photo?.id || "";
+  }
+
+  function getPhotoRenderSrc(photo) {
+    const storageKey = getPhotoStorageKey(photo);
+    return photo?.src || (storageKey ? photoSrcCache.get(storageKey) : "") || PHOTO_PLACEHOLDER;
+  }
+
+  async function resolvePhotoSrc(photo) {
+    if (!photo) return PHOTO_PLACEHOLDER;
+    if (photo.src) return photo.src;
+    const storageKey = getPhotoStorageKey(photo);
+    if (!storageKey) return PHOTO_PLACEHOLDER;
+    if (photoSrcCache.has(storageKey)) return photoSrcCache.get(storageKey);
+    const stored = await getPhotoSrc(storageKey).catch(() => "");
+    if (!stored) return PHOTO_PLACEHOLDER;
+    photoSrcCache.set(storageKey, stored);
+    return stored;
+  }
+
+  async function hydratePhotoImages(root) {
+    const images = Array.from(root.querySelectorAll("[data-photo-ref]"));
+    await Promise.all(
+      images.map(async (image) => {
+        const storageKey = image.dataset.photoRef;
+        if (!storageKey) return;
+        const stored = photoSrcCache.get(storageKey) || (await getPhotoSrc(storageKey).catch(() => ""));
+        if (stored) {
+          photoSrcCache.set(storageKey, stored);
+          image.src = stored;
+        }
+      })
+    );
+  }
+
+  function openPhotoDb() {
+    if (!("indexedDB" in window)) return Promise.reject(new Error("Offline photo storage is not supported."));
+    if (photoDbPromise) return photoDbPromise;
+    photoDbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(PHOTO_DB_NAME, PHOTO_DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) db.createObjectStore(PHOTO_STORE_NAME, { keyPath: "id" });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error("Could not open offline photo storage."));
+      request.onblocked = () => reject(new Error("Offline photo storage is blocked by another app tab."));
+    });
+    return photoDbPromise;
+  }
+
+  async function putPhotoSrc(id, src) {
+    const db = await openPhotoDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(PHOTO_STORE_NAME, "readwrite");
+      transaction.objectStore(PHOTO_STORE_NAME).put({ id, src, updatedAt: new Date().toISOString() });
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error || new Error("Could not store this photo offline."));
+    });
+  }
+
+  async function getPhotoSrc(id) {
+    if (!id) return "";
+    const db = await openPhotoDb();
+    return new Promise((resolve, reject) => {
+      const request = db.transaction(PHOTO_STORE_NAME, "readonly").objectStore(PHOTO_STORE_NAME).get(id);
+      request.onsuccess = () => resolve(request.result?.src || "");
+      request.onerror = () => reject(request.error || new Error("Could not load this stored photo."));
+    });
   }
 
   function getGeoTag() {
@@ -1433,7 +1574,7 @@
     return false;
   }
 
-  function renderPrintReport(submission) {
+  async function renderPrintReport(submission) {
     ensureSubmissionShape(submission);
     const template = submission.templateSnapshot;
     const stats = getStats(submission);
@@ -1470,32 +1611,36 @@
       })
       .join("");
 
-    const photoSection = template.photoRequirements?.length
+    const photoRequirementHtml = template.photoRequirements?.length
+      ? await Promise.all(
+          template.photoRequirements.map(async (requirement) => {
+            const evidence = getPhotoEvidence(submission, requirement.id);
+            const photos = await Promise.all(
+              (evidence.photos || []).map(async (photo) => {
+                const src = await resolvePhotoSrc(photo);
+                return `
+                  <div class="print-photo">
+                    <img src="${escapeAttr(src)}" alt="${escapeAttr(photo.caption || photo.name || "Evidence")}" />
+                    <p>${escapeHtml(photo.caption || photo.name || "Evidence photo")}<br />${escapeHtml(formatPhotoMeta(photo))}</p>
+                  </div>
+                `;
+              })
+            );
+            return `
+              <div class="print-section">
+                <h2>${escapeHtml(requirement.title)}</h2>
+                <p>${escapeHtml(requirement.requirement)}</p>
+                <div class="print-photos">${photos.join("") || "<p>No photos attached.</p>"}</div>
+              </div>
+            `;
+          })
+        )
+      : [];
+    const photoSection = photoRequirementHtml.length
       ? `
         <section class="print-section">
           <h2>Photographic Documentation</h2>
-          ${template.photoRequirements
-            .map((requirement) => {
-              const evidence = getPhotoEvidence(submission, requirement.id);
-              const photos = (evidence.photos || [])
-                .map(
-                  (photo) => `
-                    <div class="print-photo">
-                      <img src="${escapeAttr(photo.src)}" alt="${escapeAttr(photo.caption || photo.name || "Evidence")}" />
-                      <p>${escapeHtml(photo.caption || photo.name || "Evidence photo")}<br />${escapeHtml(formatPhotoMeta(photo))}</p>
-                    </div>
-                  `
-                )
-                .join("");
-              return `
-                <div class="print-section">
-                  <h2>${escapeHtml(requirement.title)}</h2>
-                  <p>${escapeHtml(requirement.requirement)}</p>
-                  <div class="print-photos">${photos || "<p>No photos attached.</p>"}</div>
-                </div>
-              `;
-            })
-            .join("")}
+          ${photoRequirementHtml.join("")}
         </section>
       `
       : "";
@@ -1567,6 +1712,11 @@
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     });
+  }
+
+  function requestPersistentStorage() {
+    if (!navigator.storage?.persist) return;
+    navigator.storage.persist().catch(() => {});
   }
 
   function toast(message) {
