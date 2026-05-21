@@ -8,7 +8,13 @@
   const PHOTO_LIMIT = 4;
   const UPDATED_CONCRETE_GRADE_CRITERIA =
     "Mix Grade M20 (20 MPA); Ratio 1:1.5:3.\nMix Grade M25 (25MPA); Ratio 1:1:2";
-  const CONCRETE_GRADE_TEMPLATE_IDS = new Set(["tpl-c2-civil-stage-audit-r1", "tpl-c3-civil-check-sheet-a-r1"]);
+  const C2_C3_CIVIL_TEMPLATE_IDS = new Set(["tpl-c2-civil-stage-audit-r1", "tpl-c3-civil-check-sheet-a-r1"]);
+  const FOUNDATION_VOLUME_CHECKPOINT = {
+    id: "6.6",
+    item: "Foundation Concrete Volume & Cement Bags Consumed",
+    criteria: "Foundation Concrete Volume (in Cubic M) and Total Number of Cement Bags Consumed (in Number).",
+    inputLabel: "Actual Value"
+  };
   const STATUS_OPTIONS = ["Pending", "OK", "Not OK", "N/A"];
   const STANDARD_SITE_FIELDS = [
     { id: "site_id", label: "Site ID", type: "text", required: true },
@@ -277,6 +283,9 @@
             criteria:
               "Curing initiated immediately after final setting; curing maintained continuously for a minimum of 14 days (or as per specification) using approved methods such as ponding, wet hessian cloth, or curing compound.",
             inputLabel: "Remarks"
+          },
+          {
+            ...FOUNDATION_VOLUME_CHECKPOINT
           }
         ]
       }
@@ -1549,7 +1558,7 @@
   }
 
   function applyTemplateTextMigrations(template) {
-    if (!CONCRETE_GRADE_TEMPLATE_IDS.has(template.id)) return;
+    if (!C2_C3_CIVIL_TEMPLATE_IDS.has(template.id)) return;
     template.sections.forEach((section) => {
       section.items.forEach((item) => {
         if (item.id === "5.1" && /concrete grade/i.test(item.item || "")) {
@@ -1557,6 +1566,16 @@
         }
       });
     });
+    const postConcretingSection = template.sections.find(
+      (section) => section.id === "6-post-concreting-and-foundation-finish" || /^6\./.test(section.title || "")
+    );
+    if (!postConcretingSection) return;
+    const existingCheckpoint = postConcretingSection.items.find((item) => item.id === FOUNDATION_VOLUME_CHECKPOINT.id);
+    if (existingCheckpoint) {
+      Object.assign(existingCheckpoint, FOUNDATION_VOLUME_CHECKPOINT);
+      return;
+    }
+    postConcretingSection.items.push({ ...FOUNDATION_VOLUME_CHECKPOINT });
   }
 
   function standardizeSiteFields(fields) {

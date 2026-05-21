@@ -312,6 +312,12 @@ window.CHECKSHEET_TEMPLATES = [
             "item": "Curing",
             "criteria": "Curing initiated immediately after final setting; curing maintained continuously for a minimum of 14 days (or as per specification) using approved methods such as ponding, wet hessian cloth, or curing compound.",
             "inputLabel": "Remarks"
+          },
+          {
+            "id": "6.6",
+            "item": "Foundation Concrete Volume & Cement Bags Consumed",
+            "criteria": "Foundation Concrete Volume (in Cubic M) and Total Number of Cement Bags Consumed (in Number).",
+            "inputLabel": "Actual Value"
           }
         ]
       }
@@ -698,6 +704,12 @@ window.CHECKSHEET_TEMPLATES = [
             "item": "Curing",
             "criteria": "Curing initiated immediately after final setting; curing maintained continuously for a minimum of 14 days (or as per specification) using approved methods such as ponding, wet hessian cloth, or curing compound.",
             "inputLabel": "Remarks"
+          },
+          {
+            "id": "6.6",
+            "item": "Foundation Concrete Volume & Cement Bags Consumed",
+            "criteria": "Foundation Concrete Volume (in Cubic M) and Total Number of Cement Bags Consumed (in Number).",
+            "inputLabel": "Actual Value"
           }
         ]
       },
