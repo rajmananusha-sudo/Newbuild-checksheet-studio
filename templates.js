@@ -325,8 +325,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-site-readiness-and-team",
-        "title": "Site Readiness & Team",
-        "requirement": "Photograph 1. An \"in-time\" selfie of the audit engineer with the mixture machine and supervisor to verify the start of the audit at the scheduled time.",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -760,8 +760,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-site-readiness-and-team",
-        "title": "Site Readiness & Team",
-        "requirement": "Photograph 1. Selfie of the Supervsior with the mixture machine and supervisor to verify the start of the audit at the scheduled time.",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -917,8 +917,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-background-of-site",
-        "title": "Photograph 1 - In time - audit engineer selfie with background of site",
-        "requirement": "Photograph - 1 (In time - audit engineer selfie with background of site)",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -1158,8 +1158,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-back-ground-of-dg",
-        "title": "Photograph 1 - In time - audit engineer selfie with back ground of DG",
-        "requirement": "Photograph - 1 (In time - audit engineer selfie with back ground of DG)",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -1365,8 +1365,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-background-of-site",
-        "title": "Photograph 1 - In time - audit engineer selfie with background of site",
-        "requirement": "Photograph - 1 (In time - audit engineer selfie with background of site)",
+        "title": "Photograph 1 - In Time Photo, Site Safety & PTW Number",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness. PTW Number: capture the applicable Permit To Work (PTW) number/document clearly and mention the PTW number in caption/remarks.",
         "limit": 4
       },
       {
@@ -1806,8 +1806,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-back-ground-of-li-ion-bb",
-        "title": "Photograph 1 - In time - audit engineer selfie with back ground of Li-ion BB",
-        "requirement": "Photograph - 1 (In time - audit engineer selfie with back ground of Li-ion BB)",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -2170,8 +2170,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-start-selfie",
-        "title": "1. Start Selfie",
-        "requirement": "Audit engineer with the site background clearly visible at the start of the inspection.",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -2383,8 +2383,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-background-of-site",
-        "title": "Photograph 1 - In time - audit engineer selfie with background of site",
-        "requirement": "Photograph - 1 (In time - audit engineer selfie with background of site)",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -2612,8 +2612,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-back-ground-of-next-gen-smps-",
-        "title": "Photograph 1 - In time - audit engineer selfie with back ground of Next Gen SMPS with door open",
-        "requirement": "Photograph -1 (In time - audit engineer selfie with back ground of Next Gen SMPS with door open)",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -2801,8 +2801,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-back-ground-of-solar",
-        "title": "Photograph 1 - In time - audit engineer selfie with back ground of Solar",
-        "requirement": "Photograph - 1 (In time - audit engineer selfie with back ground of Solar)",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -3024,8 +3024,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-1-in-time-audit-engineer-selfie-with-back-ground-of-sps-ats",
-        "title": "Photograph 1 - In time - audit engineer selfie with back ground of SPS/ATS",
-        "requirement": "Photograph - 1 (In time - audit engineer selfie with back ground of SPS/ATS)",
+        "title": "Photograph 1 - In Time Photo & Site Safety",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.",
         "limit": 4
       },
       {
@@ -3330,8 +3330,8 @@ window.CHECKSHEET_TEMPLATES = [
     "photoRequirements": [
       {
         "id": "photo-p-01-audit-in-time",
-        "title": "P-01 - Audit In-Time",
-        "requirement": "Engineer selfie with site background before start.",
+        "title": "Photograph 1 - In Time Photo, Site Safety & PTW Number",
+        "requirement": "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness. PTW Number: capture the applicable Permit To Work (PTW) number/document clearly and mention the PTW number in caption/remarks.",
         "limit": 4
       },
       {

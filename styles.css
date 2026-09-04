@@ -826,8 +826,8 @@ button svg,
   }
 
   .print-section {
-    break-inside: avoid;
-    margin: 14px 0;
+    break-inside: auto;
+    margin: 10px 0;
   }
 
   .print-section h2 {
@@ -855,26 +855,49 @@ button svg,
 
   .print-photos {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-top: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    margin-top: 4px;
   }
 
   .print-photo {
     border: 1px solid #cbd5e1;
-    break-inside: avoid;
-    padding: 5px;
+    break-inside: avoid-page;
+    padding: 3px;
   }
 
   .print-photo img {
     width: 100%;
-    max-height: 180px;
+    height: 74px;
     object-fit: contain;
     display: block;
+    background: #e2e8f0;
   }
 
   .print-photo p {
-    margin: 4px 0 0;
-    font-size: 9px;
+    margin: 2px 0 0;
+    font-size: 6.5px;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .print-photo-documentation {
+    break-inside: auto;
+  }
+
+  .print-photo-group {
+    break-inside: auto;
+    margin: 6px 0 8px;
+  }
+
+  .print-photo-group h2 {
+    margin: 0 0 3px;
+    font-size: 11px;
+  }
+
+  .print-photo-group p {
+    margin: 0;
+    font-size: 8px;
+    line-height: 1.25;
   }
 }

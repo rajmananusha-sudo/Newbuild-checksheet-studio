@@ -15,6 +15,15 @@
     criteria: "Foundation Concrete Volume (in Cubic M) and Total Number of Cement Bags Consumed (in Number).",
     inputLabel: "Actual Value"
   };
+  const PTW_PHOTO_TEMPLATE_IDS = new Set([
+    "tpl-electrical-and-earthing-acceptance-checksheet",
+    "tpl-tower-check-sheet-a-r1-1"
+  ]);
+  const IN_TIME_PHOTO_TITLE = "Photograph 1 - In Time Photo & Site Safety";
+  const IN_TIME_PTW_PHOTO_TITLE = "Photograph 1 - In Time Photo, Site Safety & PTW Number";
+  const IN_TIME_PHOTO_REQUIREMENT =
+    "In Time Photo: capture audit engineer/supervisor selfie with clear site/work-area background at audit start time. Site Safety Photos: capture PPE compliance, barricading/signage, safe access, and work-area readiness.";
+  const IN_TIME_PTW_PHOTO_REQUIREMENT = `${IN_TIME_PHOTO_REQUIREMENT} PTW Number: capture the applicable Permit To Work (PTW) number/document clearly and mention the PTW number in caption/remarks.`;
   const STATUS_OPTIONS = ["Pending", "OK", "Not OK", "N/A"];
   const STANDARD_SITE_FIELDS = [
     { id: "site_id", label: "Site ID", type: "text", required: true },
@@ -293,9 +302,8 @@
     photoRequirements: [
       {
         id: "photo-site-readiness-team",
-        title: "Site Readiness & Team",
-        requirement:
-          'Photograph 1. An "in-time" selfie of the audit engineer with the mixture machine and supervisor to verify the start of the audit at the scheduled time.',
+        title: IN_TIME_PHOTO_TITLE,
+        requirement: IN_TIME_PHOTO_REQUIREMENT,
         limit: PHOTO_LIMIT
       },
       {
@@ -1558,6 +1566,7 @@
   }
 
   function applyTemplateTextMigrations(template) {
+    applyFirstPhotoInstructionMigration(template);
     if (!C2_C3_CIVIL_TEMPLATE_IDS.has(template.id)) return;
     template.sections.forEach((section) => {
       section.items.forEach((item) => {
@@ -1576,6 +1585,16 @@
       return;
     }
     postConcretingSection.items.push({ ...FOUNDATION_VOLUME_CHECKPOINT });
+  }
+
+  function applyFirstPhotoInstructionMigration(template) {
+    const firstPhoto = template.photoRequirements?.[0];
+    if (!firstPhoto) return;
+    const label = `${firstPhoto.title || ""} ${firstPhoto.requirement || ""}`.toLowerCase();
+    if (!/(in[\s-]*time|start selfie|audit in-time|site readiness)/i.test(label)) return;
+    const needsPtw = PTW_PHOTO_TEMPLATE_IDS.has(template.id);
+    firstPhoto.title = needsPtw ? IN_TIME_PTW_PHOTO_TITLE : IN_TIME_PHOTO_TITLE;
+    firstPhoto.requirement = needsPtw ? IN_TIME_PTW_PHOTO_REQUIREMENT : IN_TIME_PHOTO_REQUIREMENT;
   }
 
   function standardizeSiteFields(fields) {
@@ -1661,7 +1680,7 @@
               })
             );
             return `
-              <div class="print-section">
+              <div class="print-photo-group">
                 <h2>${escapeHtml(requirement.title)}</h2>
                 <p>${escapeHtml(requirement.requirement)}</p>
                 <div class="print-photos">${photos.join("") || "<p>No photos attached.</p>"}</div>
@@ -1672,7 +1691,7 @@
       : [];
     const photoSection = photoRequirementHtml.length
       ? `
-        <section class="print-section">
+        <section class="print-section print-photo-documentation">
           <h2>Photographic Documentation</h2>
           ${photoRequirementHtml.join("")}
         </section>
