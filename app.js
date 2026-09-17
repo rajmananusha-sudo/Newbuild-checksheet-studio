@@ -26,6 +26,7 @@
   const IN_TIME_PTW_PHOTO_REQUIREMENT = `${IN_TIME_PHOTO_REQUIREMENT} PTW Number: capture the applicable Permit To Work (PTW) number/document clearly and mention the PTW number in caption/remarks.`;
   const STATUS_OPTIONS = ["Pending", "OK", "Not OK", "N/A"];
   const STANDARD_SITE_FIELDS = [
+    { id: "indus_id", label: "Indus ID", type: "text", required: true },
     { id: "site_id", label: "Site ID", type: "text", required: true },
     { id: "site_name", label: "Site Name", type: "text", required: true },
     { id: "country", label: "Country", type: "select", options: ["Uganda", "Zambia", "Nigeria"], required: true },
@@ -1134,7 +1135,8 @@
   }
 
   function migrateStandardMeta(meta) {
-    copyMetaIfEmpty(meta, "site_id", ["site_id_name", "site_id", "indus_site_id", "opco_site_id"]);
+    copyMetaIfEmpty(meta, "indus_id", ["indus_id", "indus-id", "indus_site_id", "indus-site-id"]);
+    copyMetaIfEmpty(meta, "site_id", ["site_id_name", "site_id", "opco_site_id"]);
     copyMetaIfEmpty(meta, "site_name", ["site_name", "site_name_address"]);
     copyMetaIfEmpty(meta, "country", ["country_circle", "country_circle_name", "country"]);
     copyMetaIfEmpty(meta, "tower_height", ["tower_height", "country-tower-height", "country_tower_height"]);
@@ -1615,6 +1617,7 @@
   function shouldRemoveOrStandardizeField(label) {
     if (!label) return true;
     if (label.includes("solution type")) return true;
+    if (label.includes("indus id") || label.includes("indus site id")) return true;
     if (label.includes("site id") || label.includes("site name")) return true;
     if (label.includes("country") && label.includes("tower height")) return true;
     if (label === "country" || label.includes("country circle") || label.includes("circle name")) return true;
