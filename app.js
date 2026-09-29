@@ -827,7 +827,6 @@
               (photo, index) => `
                 <div class="photo-tile">
                   <img data-photo-ref="${escapeAttr(getPhotoStorageKey(photo))}" src="${escapeAttr(getPhotoRenderSrc(photo))}" alt="Captured evidence photo" />
-                  <div class="photo-meta">${escapeHtml(formatPhotoMeta(photo))}</div>
                   <div class="photo-toolbar">
                     <button type="button" data-remove-photo="${index}" title="Remove photo" aria-label="Remove photo">&times;</button>
                   </div>
@@ -1664,7 +1663,6 @@
                 return `
                   <div class="print-photo">
                     <img src="${escapeAttr(src)}" alt="Captured evidence photo" />
-                    <p>${escapeHtml(formatPhotoMeta(photo))}</p>
                   </div>
                 `;
               })
@@ -1732,10 +1730,6 @@
       hour: "2-digit",
       minute: "2-digit"
     }).format(date);
-  }
-
-  function formatPhotoMeta(photo) {
-    return [formatPhotoStampDateTime(photo?.capturedAt), formatPhotoCoordinates(photo?.location)].filter(Boolean).join(" | ");
   }
 
   function formatPhotoStampDateTime(value) {

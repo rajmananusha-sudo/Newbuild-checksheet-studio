@@ -510,19 +510,11 @@ button svg,
   background: #e2e8f0;
 }
 
-.photo-note,
-.photo-meta {
+.photo-note {
   margin: 0;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
-}
-
-.photo-meta {
-  padding: 6px 8px;
-  border-top: 1px solid var(--line);
-  background: #f8fafc;
-  color: #94a3b8;
 }
 
 .photo-toolbar {
@@ -857,14 +849,6 @@ button svg,
     object-fit: contain;
     display: block;
     background: #e2e8f0;
-  }
-
-  .print-photo p {
-    margin: 3px 0 0;
-    color: #94a3b8;
-    font-size: 7px;
-    line-height: 1.15;
-    overflow-wrap: anywhere;
   }
 
   .print-photo-documentation {
