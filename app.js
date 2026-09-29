@@ -820,18 +820,16 @@
             remaining ? "" : "disabled"
           } />
         </label>
-        <p class="photo-note">GPS permission is required. Timestamp and coordinates are saved with each photo.</p>
+        <p class="photo-note">GPS permission is required. Date, time, and latitude/longitude are stamped onto and saved with each photo.</p>
         <div class="photo-grid">
           ${photos
             .map(
               (photo, index) => `
                 <div class="photo-tile">
-                  <img data-photo-ref="${escapeAttr(getPhotoStorageKey(photo))}" src="${escapeAttr(getPhotoRenderSrc(photo))}" alt="${escapeAttr(photo.caption || photo.name || "Evidence photo")}" />
-                  <input data-caption-index="${index}" value="${escapeAttr(photo.caption || "")}" placeholder="Caption" />
+                  <img data-photo-ref="${escapeAttr(getPhotoStorageKey(photo))}" src="${escapeAttr(getPhotoRenderSrc(photo))}" alt="Captured evidence photo" />
                   <div class="photo-meta">${escapeHtml(formatPhotoMeta(photo))}</div>
                   <div class="photo-toolbar">
-                    <span title="${escapeAttr(photo.name || "Photo")}">${escapeHtml(photo.name || "Photo")}</span>
-                    <button type="button" data-remove-photo="${index}" title="Remove photo">&times;</button>
+                    <button type="button" data-remove-photo="${index}" title="Remove photo" aria-label="Remove photo">&times;</button>
                   </div>
                 </div>
               `
@@ -872,15 +870,6 @@
       });
     });
 
-    els.checklistSections.querySelectorAll("[data-caption-index]").forEach((input) => {
-      input.addEventListener("input", () => {
-        const uploader = input.closest("[data-photo-scope]");
-        const photos = getPhotos(submission, uploader.dataset.photoScope, uploader.dataset.photoKey);
-        const photo = photos[Number(input.dataset.captionIndex)];
-        if (photo) photo.caption = input.value;
-        persistActiveSubmission(false);
-      });
-    });
   }
 
   function renderTemplates() {
@@ -1197,6 +1186,7 @@
         reject(new Error("Only image files can be uploaded."));
         return;
       }
+      const capturedAt = new Date().toISOString();
       const reader = new FileReader();
       reader.onload = () => {
         const originalSrc = reader.result;
@@ -1213,10 +1203,11 @@
           canvas.height = height;
           const context = canvas.getContext("2d");
           context.drawImage(image, 0, 0, width, height);
-          storePhotoRecord(canvas.toDataURL("image/jpeg", 0.72), file, location).then(resolve).catch(reject);
+          drawPhotoStamp(context, width, height, capturedAt, location);
+          storePhotoRecord(canvas.toDataURL("image/jpeg", 0.72), location, capturedAt).then(resolve).catch(reject);
         };
         image.onerror = () => {
-          storePhotoRecord(originalSrc, file, location).then(resolve).catch(reject);
+          storePhotoRecord(originalSrc, location, capturedAt).then(resolve).catch(reject);
         };
         image.src = originalSrc;
       };
@@ -1225,10 +1216,10 @@
     });
   }
 
-  async function storePhotoRecord(src, file, location) {
+  async function storePhotoRecord(src, location, capturedAt) {
     const storageKey = uid("photo");
     photoSrcCache.set(storageKey, src);
-    const record = buildPhotoRecord(storageKey, file, location);
+    const record = buildPhotoRecord(storageKey, location, capturedAt);
     try {
       await putPhotoSrc(storageKey, src);
       return record;
@@ -1237,17 +1228,13 @@
     }
   }
 
-  function buildPhotoRecord(storageKey, file, location) {
+  function buildPhotoRecord(storageKey, location, capturedAt) {
     return {
       id: storageKey,
       storage: "indexedDB",
       storageKey,
-      name: file.name,
-      caption: "",
-      capturedAt: new Date().toISOString(),
-      location,
-      originalType: file.type,
-      originalSize: file.size
+      capturedAt,
+      location
     };
   }
 
@@ -1676,8 +1663,8 @@
                 const src = await resolvePhotoSrc(photo);
                 return `
                   <div class="print-photo">
-                    <img src="${escapeAttr(src)}" alt="${escapeAttr(photo.caption || photo.name || "Evidence")}" />
-                    <p>${escapeHtml(photo.caption || photo.name || "Evidence photo")}<br />${escapeHtml(formatPhotoMeta(photo))}</p>
+                    <img src="${escapeAttr(src)}" alt="Captured evidence photo" />
+                    <p>${escapeHtml(formatPhotoMeta(photo))}</p>
                   </div>
                 `;
               })
@@ -1748,15 +1735,53 @@
   }
 
   function formatPhotoMeta(photo) {
-    const parts = [];
-    if (photo.capturedAt) parts.push(`Time: ${formatDateTime(photo.capturedAt)}`);
-    if (photo.location?.latitude && photo.location?.longitude) {
-      const accuracy = photo.location.accuracy ? ` +/-${photo.location.accuracy}m` : "";
-      parts.push(`GPS: ${photo.location.latitude}, ${photo.location.longitude}${accuracy}`);
-    } else {
-      parts.push("GPS: not captured");
-    }
-    return parts.join(" | ");
+    return [formatPhotoStampDateTime(photo?.capturedAt), formatPhotoCoordinates(photo?.location)].filter(Boolean).join(" | ");
+  }
+
+  function formatPhotoStampDateTime(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).format(date);
+  }
+
+  function formatPhotoCoordinates(location) {
+    const latitude = Number(location?.latitude);
+    const longitude = Number(location?.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return "";
+    return `Lat ${latitude.toFixed(6)}, Long ${longitude.toFixed(6)}`;
+  }
+
+  function drawPhotoStamp(context, width, height, capturedAt, location) {
+    const lines = [formatPhotoStampDateTime(capturedAt), formatPhotoCoordinates(location)].filter(Boolean);
+    if (!lines.length) return;
+
+    const padding = Math.max(10, Math.round(Math.min(width, height) * 0.018));
+    const fontSize = Math.max(16, Math.round(Math.min(width, height) * 0.026));
+    const lineHeight = Math.round(fontSize * 1.35);
+    context.save();
+    context.font = `600 ${fontSize}px Arial, sans-serif`;
+    const textWidth = Math.max(...lines.map((line) => context.measureText(line).width));
+    const boxWidth = Math.min(width - padding * 2, Math.ceil(textWidth) + padding * 2);
+    const boxHeight = lineHeight * lines.length + padding * 2;
+    const boxX = padding;
+    const boxY = height - padding - boxHeight;
+
+    context.fillStyle = "rgba(15, 23, 42, 0.68)";
+    context.fillRect(boxX, boxY, boxWidth, boxHeight);
+    context.fillStyle = "#ffffff";
+    context.textBaseline = "middle";
+    lines.forEach((line, index) => {
+      context.fillText(line, boxX + padding, boxY + padding + lineHeight * (index + 0.5));
+    });
+    context.restore();
   }
 
   function refreshIcons() {
