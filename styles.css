@@ -502,12 +502,36 @@ button svg,
   min-width: 0;
 }
 
-.photo-tile img {
+.photo-image-frame {
   width: 100%;
   aspect-ratio: 4 / 3;
+  max-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+}
+
+.photo-image-frame.photo-portrait {
+  aspect-ratio: 3 / 4;
+  max-height: 420px;
+}
+
+.photo-image-frame.photo-landscape {
+  aspect-ratio: 4 / 3;
+  max-height: 360px;
+}
+
+.photo-image-frame.photo-square {
+  aspect-ratio: 1 / 1;
+  max-height: 360px;
+}
+
+.photo-image-frame img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   display: block;
-  background: #e2e8f0;
 }
 
 .photo-note {
@@ -843,12 +867,25 @@ button svg,
     padding: 4px;
   }
 
-  .print-photo img {
+.print-photo .photo-image-frame {
     width: 100%;
-    height: 112px;
+    height: 150px;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+
+  .print-photo .photo-image-frame.photo-portrait {
+    height: 200px;
+  }
+
+  .print-photo .photo-image-frame.photo-square {
+    height: 170px;
+  }
+
+  .print-photo .photo-image-frame img {
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    display: block;
-    background: #e2e8f0;
   }
 
   .print-photo-documentation {

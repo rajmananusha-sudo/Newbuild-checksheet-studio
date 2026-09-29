@@ -1,10 +1,10 @@
-const CACHE_NAME = "civil-checksheet-studio-v16";
+const CACHE_NAME = "civil-checksheet-studio-v17";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260929-photo-stamp-only",
-  "./templates.js?v=20260929-photo-stamp-only",
-  "./app.js?v=20260929-photo-stamp-only",
+  "./styles.css?v=20260929-orientation-photo-frames",
+  "./templates.js?v=20260929-orientation-photo-frames",
+  "./app.js?v=20260929-orientation-photo-frames",
   "./manifest.webmanifest",
   "./icon.svg"
 ];

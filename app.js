@@ -826,7 +826,9 @@
             .map(
               (photo, index) => `
                 <div class="photo-tile">
-                  <img data-photo-ref="${escapeAttr(getPhotoStorageKey(photo))}" src="${escapeAttr(getPhotoRenderSrc(photo))}" alt="Captured evidence photo" />
+                  <div class="photo-image-frame">
+                    <img data-photo-ref="${escapeAttr(getPhotoStorageKey(photo))}" src="${escapeAttr(getPhotoRenderSrc(photo))}" alt="Captured evidence photo" />
+                  </div>
                   <div class="photo-toolbar">
                     <button type="button" data-remove-photo="${index}" title="Remove photo" aria-label="Remove photo">&times;</button>
                   </div>
@@ -1260,6 +1262,10 @@
 
   async function hydratePhotoImages(root) {
     const images = Array.from(root.querySelectorAll("[data-photo-ref]"));
+    images.forEach((image) => {
+      image.addEventListener("load", () => updatePhotoFrameOrientation(image));
+      updatePhotoFrameOrientation(image);
+    });
     await Promise.all(
       images.map(async (image) => {
         const storageKey = image.dataset.photoRef;
@@ -1268,9 +1274,21 @@
         if (stored) {
           photoSrcCache.set(storageKey, stored);
           image.src = stored;
+          updatePhotoFrameOrientation(image);
         }
       })
     );
+  }
+
+  function updatePhotoFrameOrientation(image) {
+    const frame = image.closest(".photo-image-frame");
+    if (!frame || !image.naturalWidth || !image.naturalHeight) return;
+    frame.classList.remove("photo-portrait", "photo-landscape", "photo-square");
+    if (image.naturalWidth === image.naturalHeight) {
+      frame.classList.add("photo-square");
+    } else {
+      frame.classList.add(image.naturalHeight > image.naturalWidth ? "photo-portrait" : "photo-landscape");
+    }
   }
 
   function openPhotoDb() {
@@ -1662,7 +1680,9 @@
                 const src = await resolvePhotoSrc(photo);
                 return `
                   <div class="print-photo">
-                    <img src="${escapeAttr(src)}" alt="Captured evidence photo" />
+                    <div class="photo-image-frame">
+                      <img src="${escapeAttr(src)}" alt="Captured evidence photo" />
+                    </div>
                   </div>
                 `;
               })
@@ -1705,6 +1725,26 @@
       ${sectionHtml}
       ${photoSection}
     `;
+    await hydratePrintPhotoFrames(els.printRoot);
+  }
+
+  async function hydratePrintPhotoFrames(root) {
+    const images = Array.from(root.querySelectorAll(".photo-image-frame img"));
+    await Promise.all(
+      images.map((image) => {
+        if (image.complete) {
+          updatePhotoFrameOrientation(image);
+          return Promise.resolve();
+        }
+        return new Promise((resolve) => {
+          image.addEventListener("load", () => {
+            updatePhotoFrameOrientation(image);
+            resolve();
+          }, { once: true });
+          image.addEventListener("error", resolve, { once: true });
+        });
+      })
+    );
   }
 
   function statusPill(status) {
