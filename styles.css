@@ -379,7 +379,7 @@ button svg,
 
 .summary-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px;
 }
 
@@ -593,6 +593,11 @@ button svg,
 .status-not-ok {
   background: #fee2e2;
   color: var(--red);
+}
+
+.status-partial {
+  background: #ffedd5;
+  color: #9a3412;
 }
 
 .status-na {
@@ -815,7 +820,7 @@ button svg,
 
   .print-summary {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     gap: 6px;
     margin: 12px 0;
   }

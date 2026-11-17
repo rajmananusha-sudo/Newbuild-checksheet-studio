@@ -714,13 +714,15 @@
 
   function renderSummary(submission) {
     const stats = getStats(submission);
-    return [
+    const summary = [
       ["Total", stats.total],
       ["OK", stats.ok],
       ["Not OK", stats.notOk],
       ["Pending", stats.pending],
       ["Photos", stats.photos]
-    ]
+    ];
+    if (stats.partial) summary.splice(3, 0, ["Partial OK", stats.partial]);
+    return summary
       .map(
         ([label, value]) => `
           <div class="summary-item">
@@ -752,6 +754,7 @@
   function renderCheckpoint(section, item, submission) {
     const response = getItemResponse(submission, item.id);
     const fieldLabel = item.inputLabel || "Remarks";
+    const statusOptions = item.statusOptions?.length ? item.statusOptions : STATUS_OPTIONS;
     return `
       <article class="checkpoint" data-section-id="${escapeAttr(section.id)}" data-item-id="${escapeAttr(
         item.id
@@ -767,9 +770,9 @@
         <div class="checkpoint-control">
           <label>Status</label>
           <select data-response-field="status">
-            ${STATUS_OPTIONS.map(
+            ${statusOptions.map(
               (option) =>
-                `<option value="${option}" ${response.status === option ? "selected" : ""}>${option}</option>`
+                `<option value="${escapeAttr(option)}" ${response.status === option ? "selected" : ""}>${escapeHtml(option)}</option>`
             ).join("")}
           </select>
           <label>${escapeHtml(fieldLabel)}</label>
@@ -788,7 +791,7 @@
         <div class="section-title">
           <div>
             <h3>Photographic Documentation</h3>
-            <p>Each mentioned point accepts up to ${PHOTO_LIMIT} photos with captions.</p>
+            <p>Each mentioned point accepts up to ${PHOTO_LIMIT} photos.</p>
           </div>
           <span class="tag">${template.photoRequirements.length} photo points</span>
         </div>
@@ -843,11 +846,12 @@
 
   function bindChecklistEvents(submission) {
     els.checklistSections.querySelectorAll("[data-response-field]").forEach((input) => {
-      input.addEventListener("input", () => {
+      input.addEventListener(input.tagName === "SELECT" ? "change" : "input", () => {
         const checkpoint = input.closest("[data-item-id]");
         const response = getItemResponse(submission, checkpoint.dataset.itemId);
         response[input.dataset.responseField] = input.value;
         persistActiveSubmission(false);
+        if (input.dataset.responseField === "status") els.auditSummary.innerHTML = renderSummary(submission);
         renderSidebar();
       });
     });
@@ -1372,12 +1376,13 @@
     const ok = responses.filter((response) => response.status === "OK").length;
     const notOk = responses.filter((response) => response.status === "Not OK").length;
     const na = responses.filter((response) => response.status === "N/A").length;
-    const pending = Math.max(0, total - ok - notOk - na);
+    const partial = responses.filter((response) => response.status === "Partial OK").length;
+    const pending = Math.max(0, total - ok - notOk - na - partial);
     const reqPhotos = Object.values(submission.photoEvidence || {}).reduce(
       (sum, evidence) => sum + (evidence.photos?.length || 0),
       0
     );
-    return { total, ok, notOk, na, pending, photos: reqPhotos };
+    return { total, ok, notOk, partial, na, pending, photos: reqPhotos };
   }
 
   function getTemplateStats(template) {
@@ -1393,12 +1398,14 @@
     if (!submission) return;
     const stats = getStats(submission);
     els.sidebarReportName.textContent = submission.title || "New audit";
-    els.sidebarMetrics.innerHTML = [
+    const metrics = [
       ["OK", stats.ok],
       ["Not OK", stats.notOk],
       ["Pending", stats.pending],
       ["Photos", stats.photos]
-    ]
+    ];
+    if (stats.partial) metrics.splice(2, 0, ["Partial OK", stats.partial]);
+    els.sidebarMetrics.innerHTML = metrics
       .map(
         ([label, value]) => `
           <div class="metric">
@@ -1558,7 +1565,8 @@
         id: String(item.id || `${sectionIndex + 1}.${itemIndex + 1}`),
         item: item.item || item.name || `Checkpoint ${itemIndex + 1}`,
         criteria: item.criteria || item.requirement || "",
-        inputLabel: item.inputLabel || "Remarks"
+        inputLabel: item.inputLabel || "Remarks",
+        statusOptions: Array.isArray(item.statusOptions) ? item.statusOptions.map(String).filter(Boolean) : []
       }))
     }));
     normalized.photoRequirements = (normalized.photoRequirements || []).map((requirement, index) => ({
@@ -1719,6 +1727,7 @@
         <div><strong>Total</strong><br />${stats.total}</div>
         <div><strong>OK</strong><br />${stats.ok}</div>
         <div><strong>Not OK</strong><br />${stats.notOk}</div>
+        ${stats.partial ? `<div><strong>Partial OK</strong><br />${stats.partial}</div>` : ""}
         <div><strong>Pending</strong><br />${stats.pending}</div>
         <div><strong>Photos</strong><br />${stats.photos}</div>
       </div>
@@ -1748,14 +1757,13 @@
   }
 
   function statusPill(status) {
-    const className =
-      status === "OK"
-        ? "status-ok"
-        : status === "Not OK"
-          ? "status-not-ok"
-          : status === "N/A"
-            ? "status-na"
-            : "status-pending";
+    const statusClasses = {
+      OK: "status-ok",
+      "Not OK": "status-not-ok",
+      "Partial OK": "status-partial",
+      "N/A": "status-na"
+    };
+    const className = statusClasses[status] || "status-pending";
     return `<span class="status-pill ${className}">${escapeHtml(status || "Pending")}</span>`;
   }
 
