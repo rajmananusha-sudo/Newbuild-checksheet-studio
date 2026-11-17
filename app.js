@@ -811,7 +811,7 @@
           </div>
           <span class="tag">${template.photoRequirements.length} photo points</span>
         </div>
-        <div class="photo-requirements">
+        <div class="photo-requirements ${TEMPLATE_PHOTO_LIMITS[template.id] === 1 ? "photo-requirements-two-up" : ""}">
           ${template.photoRequirements.map((requirement) => {
             const evidence = getPhotoEvidence(submission, requirement.id);
             return `
@@ -1765,7 +1765,7 @@
       : [];
     const photoSection = photoRequirementHtml.length
       ? `
-        <section class="print-section print-photo-documentation">
+        <section class="print-section print-photo-documentation ${TEMPLATE_PHOTO_LIMITS[template.id] === 1 ? "print-photo-two-up" : ""}">
           <h2>Photographic Documentation</h2>
           ${photoRequirementHtml.join("")}
         </section>
