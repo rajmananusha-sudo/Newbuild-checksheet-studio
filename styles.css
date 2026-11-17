@@ -315,7 +315,9 @@ button svg,
 .field-control textarea,
 .checkpoint-control select,
 .checkpoint-control input,
-.checkpoint-control textarea {
+.checkpoint-control textarea,
+.checkpoint-description-control textarea,
+.photo-description-control textarea {
   min-height: 40px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
@@ -372,9 +374,25 @@ button svg,
 }
 
 .field-control textarea,
-.checkpoint-control textarea {
+.checkpoint-control textarea,
+.checkpoint-description-control textarea,
+.photo-description-control textarea {
   min-height: 76px;
   resize: vertical;
+}
+
+.checkpoint-description-control,
+.photo-description-control {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.checkpoint-description-control span,
+.photo-description-control span {
+  color: var(--slate);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .summary-strip {

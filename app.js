@@ -6,6 +6,15 @@
   const PHOTO_PLACEHOLDER =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 480'%3E%3Crect width='640' height='480' fill='%23e2e8f0'/%3E%3Cpath d='M188 304l74-86 58 68 42-48 90 104H188z' fill='%2394a3b8'/%3E%3Ccircle cx='432' cy='162' r='34' fill='%23cbd5e1'/%3E%3C/svg%3E";
   const PHOTO_LIMIT = 4;
+  const TEMPLATE_PHOTO_LIMITS = {
+    "tpl-rfai-checklist": 1,
+    "tpl-rfai-snags-checklist": 1
+  };
+  const TEMPLATE_FIELD_OMISSIONS = {
+    "tpl-rfai-checklist": ["audit_start_time", "audit_end_time"],
+    "tpl-rfai-document-checklist": ["audit_start_time", "audit_end_time", "audit_engineer"],
+    "tpl-rfai-snags-checklist": ["audit_start_time", "audit_end_time"]
+  };
   const UPDATED_CONCRETE_GRADE_CRITERIA =
     "Mix Grade M20 (20 MPA); Ratio 1:1.5:3.\nMix Grade M25 (25MPA); Ratio 1:1:2";
   const C2_C3_CIVIL_TEMPLATE_IDS = new Set(["tpl-c2-civil-stage-audit-r1", "tpl-c3-civil-check-sheet-a-r1"]);
@@ -765,6 +774,12 @@
             ${statusPill(response.status)}
           </div>
           <h4>${escapeHtml(item.item)}</h4>
+          ${item.descriptionLabel ? `
+            <label class="checkpoint-description-control">
+              <span>${escapeHtml(item.descriptionLabel)}</span>
+              <textarea data-response-field="description" placeholder="Write ${escapeAttr(item.descriptionLabel.toLowerCase())}">${escapeHtml(response.description || "")}</textarea>
+            </label>
+          ` : ""}
           <p class="checkpoint-criteria">${escapeHtml(item.criteria)}</p>
         </div>
         <div class="checkpoint-control">
@@ -786,12 +801,13 @@
 
   function renderPhotoDocumentation(template, submission) {
     if (!template.photoRequirements?.length) return "";
+    const photoLimit = template.photoLimit || PHOTO_LIMIT;
     return `
       <section class="section-block">
         <div class="section-title">
           <div>
             <h3>Photographic Documentation</h3>
-            <p>Each mentioned point accepts up to ${PHOTO_LIMIT} photos.</p>
+            <p>Each photo point accepts up to ${photoLimit} photo${photoLimit === 1 ? "" : "s"}.</p>
           </div>
           <span class="tag">${template.photoRequirements.length} photo points</span>
         </div>
@@ -802,7 +818,13 @@
               <div class="photo-requirement" data-photo-id="${escapeAttr(requirement.id)}">
                 <h4>${escapeHtml(requirement.title)}</h4>
                 <p class="checkpoint-criteria">${escapeHtml(requirement.requirement)}</p>
-                ${renderPhotoUploader("requirement", requirement.id, evidence.photos || [])}
+                ${requirement.descriptionLabel ? `
+                  <label class="photo-description-control">
+                    <span>${escapeHtml(requirement.descriptionLabel)}</span>
+                    <textarea data-photo-description="${escapeAttr(requirement.id)}" placeholder="Write ${escapeAttr(requirement.descriptionLabel.toLowerCase())}">${escapeHtml(evidence.description || "")}</textarea>
+                  </label>
+                ` : ""}
+                ${renderPhotoUploader("requirement", requirement.id, evidence.photos || [], requirement.limit || photoLimit)}
               </div>
             `;
           }).join("")}
@@ -811,15 +833,15 @@
     `;
   }
 
-  function renderPhotoUploader(scope, id, photos) {
-    const remaining = Math.max(0, PHOTO_LIMIT - photos.length);
+  function renderPhotoUploader(scope, id, photos, limit = PHOTO_LIMIT) {
+    const remaining = Math.max(0, limit - photos.length);
     return `
       <div class="photo-uploader" data-photo-scope="${escapeAttr(scope)}" data-photo-key="${escapeAttr(id)}">
-        <label class="photo-label">Photos (${photos.length}/${PHOTO_LIMIT})</label>
+        <label class="photo-label">Photos (${photos.length}/${limit})</label>
         <label class="photo-drop">
           <i data-lucide="camera"></i>
           ${remaining ? `Capture up to ${remaining} geo-tagged photo${remaining === 1 ? "" : "s"}` : "Photo limit reached"}
-          <input type="file" data-photo-input hidden accept="image/*" capture="environment" multiple ${
+          <input type="file" data-photo-input hidden accept="image/*" capture="environment" ${limit > 1 ? "multiple" : ""} ${
             remaining ? "" : "disabled"
           } />
         </label>
@@ -872,6 +894,14 @@
         photos.splice(Number(button.dataset.removePhoto), 1);
         persistActiveSubmission(false);
         renderFill();
+      });
+    });
+
+    els.checklistSections.querySelectorAll("[data-photo-description]").forEach((input) => {
+      input.addEventListener("input", () => {
+        const evidence = getPhotoEvidence(submission, input.dataset.photoDescription);
+        evidence.description = input.value;
+        persistActiveSubmission(false);
       });
     });
 
@@ -1122,6 +1152,7 @@
         submission.photoEvidence[requirement.id] = { photos: [] };
       }
     });
+    if (submission.templateId === "tpl-rfai-document-checklist") updateSubmissionTitle(submission);
   }
 
   function getActiveSubmission() {
@@ -1163,7 +1194,10 @@
 
   async function addPhotos(submission, scope, key, files) {
     const photos = getPhotos(submission, scope, key);
-    const available = PHOTO_LIMIT - photos.length;
+    const pointLimit = scope === "requirement"
+      ? submission.templateSnapshot.photoRequirements.find((requirement) => requirement.id === key)?.limit || PHOTO_LIMIT
+      : PHOTO_LIMIT;
+    const available = pointLimit - photos.length;
     if (available <= 0) return;
     const selected = Array.from(files).slice(0, available);
     let location;
@@ -1181,7 +1215,7 @@
       }
     }
     if (files.length > available) {
-      alert(`Only ${PHOTO_LIMIT} photos are allowed for this point.`);
+      alert(`Only ${pointLimit} photo${pointLimit === 1 ? "" : "s"} allowed for this point.`);
     }
   }
 
@@ -1364,7 +1398,8 @@
     const meta = submission.meta || {};
     const siteField = submission.templateSnapshot.siteFields.find((field) => /site/i.test(field.label));
     const site = siteField ? meta[siteField.id] : "";
-    const engineer = meta.audit_engineer || meta.auditor || "";
+    const hasEngineerField = submission.templateSnapshot.siteFields.some((field) => field.id === "audit_engineer");
+    const engineer = hasEngineerField ? meta.audit_engineer || meta.auditor || "" : "";
     const fallback = submission.templateSnapshot.name;
     submission.title = [site, engineer].filter(Boolean).join(" - ") || fallback;
   }
@@ -1546,6 +1581,13 @@
     if (!template.name) throw new Error("Template name is required.");
     const normalized = deepClone(template);
     normalized.id ||= uid("tpl");
+    const omittedFieldIds = new Set(TEMPLATE_FIELD_OMISSIONS[normalized.id] || []);
+    const forcedPhotoLimit = TEMPLATE_PHOTO_LIMITS[normalized.id];
+    const templatePhotoLimit = Math.max(
+      1,
+      Math.min(PHOTO_LIMIT, Math.floor(Number(forcedPhotoLimit || normalized.photoLimit) || PHOTO_LIMIT))
+    );
+    normalized.photoLimit = templatePhotoLimit;
     normalized.siteFields = standardizeSiteFields(
       (normalized.siteFields?.length ? normalized.siteFields : defaultTemplate.siteFields).map((field) => ({
         id: field.id || slugify(field.label),
@@ -1556,7 +1598,7 @@
         otherLabel: field.otherLabel || "",
         required: Boolean(field.required)
       }))
-    );
+    ).filter((field) => !omittedFieldIds.has(field.id));
     normalized.sections = (normalized.sections || []).map((section, sectionIndex) => ({
       id: section.id || slugify(section.title || `section-${sectionIndex + 1}`),
       title: section.title || `Section ${sectionIndex + 1}`,
@@ -1566,15 +1608,23 @@
         item: item.item || item.name || `Checkpoint ${itemIndex + 1}`,
         criteria: item.criteria || item.requirement || "",
         inputLabel: item.inputLabel || "Remarks",
+        descriptionLabel: item.descriptionLabel || "",
         statusOptions: Array.isArray(item.statusOptions) ? item.statusOptions.map(String).filter(Boolean) : []
       }))
     }));
-    normalized.photoRequirements = (normalized.photoRequirements || []).map((requirement, index) => ({
-      id: requirement.id || slugify(requirement.title || `photo-${index + 1}`),
-      title: requirement.title || `Photo Point ${index + 1}`,
-      requirement: requirement.requirement || "",
-      limit: PHOTO_LIMIT
-    }));
+    normalized.photoRequirements = (normalized.photoRequirements || []).map((requirement, index) => {
+      const requestedLimit = Number(requirement.limit);
+      const limit = forcedPhotoLimit || (Number.isFinite(requestedLimit) && requestedLimit > 0
+        ? Math.min(templatePhotoLimit, Math.floor(requestedLimit))
+        : templatePhotoLimit);
+      return {
+        id: requirement.id || slugify(requirement.title || `photo-${index + 1}`),
+        title: requirement.title || `Photo Point ${index + 1}`,
+        requirement: requirement.requirement || "",
+        descriptionLabel: requirement.descriptionLabel || "",
+        limit
+      };
+    });
     applyTemplateTextMigrations(normalized);
     return normalized;
   }
@@ -1654,12 +1704,16 @@
         const rows = section.items
           .map((item) => {
             const response = getItemResponse(submission, item.id);
+            const remarks = [
+              item.descriptionLabel && response.description ? `${item.descriptionLabel}: ${response.description}` : "",
+              response.remarks || ""
+            ].filter(Boolean).join("\n");
             return `
               <tr>
                 <td>${escapeHtml(item.id)}</td>
                 <td><strong>${escapeHtml(item.item)}</strong><br />${escapeHtml(item.criteria)}</td>
                 <td>${escapeHtml(response.status || "Pending")}</td>
-                <td>${escapeHtml(response.remarks || "-")}</td>
+                <td>${escapeHtml(remarks || "-")}</td>
               </tr>
             `;
           })
@@ -1683,6 +1737,9 @@
       ? await Promise.all(
           template.photoRequirements.map(async (requirement) => {
             const evidence = getPhotoEvidence(submission, requirement.id);
+            const descriptionHtml = evidence.description?.trim()
+              ? `<p><strong>${escapeHtml(requirement.descriptionLabel || "Description")}:</strong> ${escapeHtml(evidence.description)}</p>`
+              : "";
             const photos = await Promise.all(
               (evidence.photos || []).map(async (photo) => {
                 const src = await resolvePhotoSrc(photo);
@@ -1699,6 +1756,7 @@
               <div class="print-photo-group">
                 <h2>${escapeHtml(requirement.title)}</h2>
                 <p>${escapeHtml(requirement.requirement)}</p>
+                ${descriptionHtml}
                 <div class="print-photos">${photos.join("") || "<p>No photos attached.</p>"}</div>
               </div>
             `;

@@ -33,6 +33,7 @@
       name: "RFAI Checklist",
       revision: "Embedded",
       source: "-1Checklist.xlsx - RFAI Checklist",
+      photoLimit: 1,
       siteFields: fields,
       sections: [
         {
@@ -110,20 +111,22 @@
       name: "RFAI Snags Checklist",
       revision: "Embedded",
       source: "-1Checklist.xlsx - Snags Checklist",
+      photoLimit: 1,
       siteFields: [...fields, { id: "partner_supervisor", label: "Partner Supervisor Name", type: "text" }],
       sections: [
         {
           id: "snag-register",
           title: "Snag Register",
-          description: "Enter each snag and its location in remarks. Keep status Pending until rectified, then mark OK.",
+          description: "Enter each snag and its location in the description field. Mark unused rows N/A. Keep status Pending until rectified, then mark OK.",
           items: makeItems(
             Array.from({ length: 15 }, (_, index) => [
               String(index + 1),
               `Snag ${index + 1}`,
-              "Record the snag description and exact location in remarks. Leave unused rows blank."
+              "Write the snag description and exact location in the field below. Use N/A for unused rows."
             ]),
-            "Snag / Location / Rectification Remarks"
+            "Rectification / Closure Remarks"
           )
+          .map((item) => ({ ...item, descriptionLabel: "Snag Description" }))
         }
       ],
       photoRequirements: [
@@ -131,7 +134,8 @@
         ...Array.from({ length: 10 }, (_, index) => ({
           id: `snag-defect-${index + 1}`,
           title: `Defect ${index + 1} Photo`,
-          requirement: "Capture the defect and enough surrounding area to identify its location and condition."
+          requirement: "Capture the defect and enough surrounding area to identify its location and condition.",
+          descriptionLabel: "Defect Description"
         }))
       ]
     }

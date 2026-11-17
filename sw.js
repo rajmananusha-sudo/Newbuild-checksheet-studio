@@ -1,11 +1,11 @@
-const CACHE_NAME = "civil-checksheet-studio-v18";
+const CACHE_NAME = "civil-checksheet-studio-v19";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20261117-rfai-checklists",
-  "./templates.js?v=20261117-rfai-checklists",
-  "./templates-extra.js?v=20261117-rfai-checklists",
-  "./app.js?v=20261117-rfai-checklists",
+  "./styles.css?v=20261117-rfai-photo-descriptions",
+  "./templates.js?v=20261117-rfai-photo-descriptions",
+  "./templates-extra.js?v=20261117-rfai-photo-descriptions",
+  "./app.js?v=20261117-rfai-photo-descriptions",
   "./manifest.webmanifest",
   "./icon.svg"
 ];
