@@ -138,6 +138,136 @@
           descriptionLabel: "Defect Description"
         }))
       ]
+    },
+    {
+      id: "tpl-rebound-hammer-checklist",
+      name: "Rebound Hammer Checklist",
+      revision: "Embedded",
+      source: "Rebound Hammer Checklist.xlsx - Rebound Hammer",
+      siteFieldsMode: "exact",
+      photoLimit: 1,
+      siteFields: [
+        { id: "indus_id", label: "Indus ID", type: "text", required: true },
+        {
+          id: "site_name",
+          label: "Site Name",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["site_name", "site_id_name"]
+        },
+        { id: "inspection_date", label: "Date of Inspection", type: "date", readOnly: true },
+        {
+          id: "opco_id",
+          label: "Opco ID",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["opco_id", "opco-site-id", "opco_site_id"]
+        },
+        {
+          id: "build_partner",
+          label: "Build Partner Name",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["build_partner", "build_partner_name"]
+        },
+        {
+          id: "partner_supervisor",
+          label: "Build Partner Supervisor Name",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["partner_supervisor", "supervisor", "site_contact"]
+        },
+        {
+          id: "quality_agency",
+          label: "Quality Audit Agency",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["quality_agency", "quality_audit_agency"]
+        },
+        {
+          id: "audit_engineer",
+          label: "Quality Engineer Name",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["audit_engineer", "quality_engineer_name", "auditor"]
+        }
+      ],
+      sections: [
+        {
+          id: "foundation-rebound-readings",
+          title: "Foundation Rebound Readings",
+          items: [1, 2, 3].map((leg) => ({
+          id: String(leg),
+          item: `Foundation Leg ${leg}`,
+          criteria: "Enter the ten rebound hammer readings for this foundation leg.",
+          readingCount: 10,
+          averageLabel: "Average Point",
+          curveValueLabel: "Curve Value (from graph)"
+          }))
+        }
+      ],
+      photoRequirements: [
+        ...[1, 2, 3].flatMap((pit) => [1, 2].map((reading) => ({
+          id: `pit-${pit}-reading-${reading}`,
+          title: `Pit ${pit} (Reading ${reading}) Photo`,
+          requirement: `Capture the rebound hammer test at Pit ${pit}, Reading ${reading}.`,
+          limit: 1
+        }))),
+        {
+          id: "rebound-hammer-curve-graph",
+          title: "Rebound Hammer Curve/Graph Photo",
+          requirement: "Capture the curve or graph used to determine the curve values.",
+          limit: 1
+        }
+      ]
+    },
+    {
+      id: "tpl-curing-checklist",
+      name: "Curing Compliance Checklist",
+      revision: "Embedded",
+      source: "Curing.xlsx - Curing Compliance",
+      siteFieldsMode: "exact",
+      photoLimit: 1,
+      photoComplianceDenominator: 14,
+      siteFields: [
+        { id: "indus_id", label: "Indus ID", type: "text", required: true },
+        {
+          id: "site_name",
+          label: "Site Name",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["site_name", "site_id_name"]
+        },
+        { id: "inspection_date", label: "Date of Inspection", type: "date", readOnly: true },
+        {
+          id: "opco_id",
+          label: "Opco ID",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["opco_id", "opco-site-id", "opco_site_id"]
+        },
+        {
+          id: "build_partner",
+          label: "Build Partner Name",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["build_partner", "build_partner_name"]
+        },
+        {
+          id: "partner_supervisor",
+          label: "Build Partner Supervisor Name",
+          type: "text",
+          readOnly: true,
+          autoFillFromPrevious: ["partner_supervisor", "supervisor", "site_contact"]
+        }
+      ],
+      sections: [],
+      photoRequirements: Array.from({ length: 14 }, (_, index) => ({
+        id: `curing-day-${index + 1}`,
+        title: `Day ${index + 1} Curing Photo`,
+        requirement: `Attach the curing photograph for Day ${index + 1}.`,
+        limit: 1
+      }))
     }
   );
 })();

@@ -6,9 +6,12 @@
   const PHOTO_PLACEHOLDER =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 480'%3E%3Crect width='640' height='480' fill='%23e2e8f0'/%3E%3Cpath d='M188 304l74-86 58 68 42-48 90 104H188z' fill='%2394a3b8'/%3E%3Ccircle cx='432' cy='162' r='34' fill='%23cbd5e1'/%3E%3C/svg%3E";
   const PHOTO_LIMIT = 4;
+  const REBOUND_HAMMER_TEMPLATE_ID = "tpl-rebound-hammer-checklist";
   const TEMPLATE_PHOTO_LIMITS = {
     "tpl-rfai-checklist": 1,
-    "tpl-rfai-snags-checklist": 1
+    "tpl-rfai-snags-checklist": 1,
+    [REBOUND_HAMMER_TEMPLATE_ID]: 1,
+    "tpl-curing-checklist": 1
   };
   const TEMPLATE_FIELD_OMISSIONS = {
     "tpl-rfai-checklist": ["audit_start_time", "audit_end_time"],
@@ -620,6 +623,10 @@
     const submission = getActiveSubmission() || createSubmission(state.templates[0].id);
     ensureSubmissionShape(submission);
     const template = submission.templateSnapshot;
+    const supportsMetadataPrefill = template.siteFields.some((field) => field.autoFillFromPrevious?.length);
+    const metadataPrefill = supportsMetadataPrefill && submission.meta.indus_id
+      ? prefillSiteMetadataFromSavedReports(submission, submission.meta.indus_id, true)
+      : null;
 
     els.templateSelect.innerHTML = state.templates
       .map(
@@ -632,13 +639,28 @@
 
     els.auditMeta.innerHTML = template.siteFields
       .map((field) => renderMetaField(field, submission.meta[field.id] || ""))
-      .join("");
+      .join("") + (supportsMetadataPrefill
+        ? `<p class="field-status" data-metadata-prefill-status role="status">${escapeHtml(metadataPrefill ? metadataPrefillMessage(metadataPrefill) : "")}</p>`
+        : "");
 
     els.auditMeta.querySelectorAll("[data-meta]").forEach((input) => {
       const eventName = input.tagName === "SELECT" ? "change" : "input";
       input.addEventListener(eventName, () => {
         updateMetaField(submission, input);
       });
+      if (supportsMetadataPrefill && input.dataset.meta === "indus_id") {
+        input.addEventListener("change", () => {
+          const result = prefillSiteMetadataFromSavedReports(submission, input.value, false);
+          template.siteFields.filter((field) => field.autoFillFromPrevious?.length).forEach((field) => {
+            const target = els.auditMeta.querySelector(`[data-meta="${field.id}"]`);
+            if (target) target.value = submission.meta[field.id] || "";
+          });
+          const status = els.auditMeta.querySelector("[data-metadata-prefill-status]");
+          if (status) status.textContent = metadataPrefillMessage(result);
+          persistActiveSubmission(false);
+          renderSidebar();
+        });
+      }
     });
 
     els.auditMeta.querySelectorAll("[data-meta-other]").forEach((input) => {
@@ -665,6 +687,7 @@
   function renderMetaField(field, value) {
     const type = field.type || "text";
     const required = field.required ? "required" : "";
+    const readOnly = field.readOnly ? "readonly" : "";
     if (type === "select") {
       const options = field.options || [];
       const isOther = Boolean(field.allowOther && value && !options.includes(value));
@@ -701,7 +724,7 @@
         }</label>
         <input id="meta-${escapeAttr(field.id)}" data-meta="${escapeAttr(field.id)}" type="${escapeAttr(
           type
-        )}" value="${escapeAttr(value)}" ${required} />
+        )}" value="${escapeAttr(value)}" ${required} ${readOnly} />
       </div>
     `;
   }
@@ -721,7 +744,84 @@
     renderSidebar();
   }
 
+  function prefillSiteMetadataFromSavedReports(submission, indusId, onlyFillEmpty) {
+    const normalizedId = String(indusId || "").trim().toLowerCase();
+    const fields = submission.templateSnapshot.siteFields.filter((field) => field.autoFillFromPrevious?.length);
+    if (!normalizedId) {
+      if (!onlyFillEmpty) fields.forEach((field) => { submission.meta[field.id] = ""; });
+      return { matched: false, hasValues: fields.some((field) => Boolean(submission.meta[field.id])) };
+    }
+
+    const previous = state.submissions
+      .filter((candidate) => {
+        if (candidate.id === submission.id) return false;
+        const candidateId = getMetaValue(candidate.meta, ["indus_id", "indus-id", "indus_site_id", "indus-site-id"]);
+        return candidateId.trim().toLowerCase() === normalizedId;
+      })
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+
+    fields.forEach((field) => {
+      if (onlyFillEmpty && String(submission.meta[field.id] || "").trim()) return;
+      const value = previous
+        .map((candidate) => getMetaValue(candidate.meta, field.autoFillFromPrevious))
+        .find(Boolean) || "";
+      submission.meta[field.id] = value;
+    });
+
+    return {
+      matched: previous.length > 0,
+      hasValues: fields.some((field) => Boolean(String(submission.meta[field.id] || "").trim()))
+    };
+  }
+
+  function getMetaValue(meta, ids) {
+    for (const id of ids) {
+      const value = meta?.[id];
+      if (value != null && String(value).trim()) return String(value).trim();
+    }
+    return "";
+  }
+
+  function metadataPrefillMessage(result) {
+    if (!result) return "";
+    if (result.hasValues) return "Saved site details loaded.";
+    return result.matched
+      ? "A saved record exists, but it has no common details."
+      : "No saved details found for this Indus ID.";
+  }
+
   function renderSummary(submission) {
+    if (submission.templateSnapshot.photoComplianceDenominator) {
+      const stats = getStats(submission);
+      return [
+        ["Days Documented", `${stats.daysDocumented}/${stats.total}`],
+        ["Photos Submitted", stats.photos],
+        ["Curing Compliance", `${stats.compliancePercent.toFixed(1)}%`]
+      ]
+        .map(([label, value]) => `
+          <div class="summary-item">
+            <strong>${value}</strong>
+            <span>${label}</span>
+          </div>
+        `)
+        .join("");
+    }
+    if (submission.templateId === REBOUND_HAMMER_TEMPLATE_ID) {
+      const stats = getStats(submission);
+      return [
+        ["Test Areas", stats.total],
+        ["Complete", stats.ok],
+        ["Awaiting Readings", stats.pending],
+        ["Photos", stats.photos]
+      ]
+        .map(([label, value]) => `
+          <div class="summary-item">
+            <strong>${value}</strong>
+            <span>${label}</span>
+          </div>
+        `)
+        .join("");
+    }
     const stats = getStats(submission);
     const summary = [
       ["Total", stats.total],
@@ -764,14 +864,15 @@
     const response = getItemResponse(submission, item.id);
     const fieldLabel = item.inputLabel || "Remarks";
     const statusOptions = item.statusOptions?.length ? item.statusOptions : STATUS_OPTIONS;
+    const readingCount = Number(item.readingCount) || 0;
     return `
-      <article class="checkpoint" data-section-id="${escapeAttr(section.id)}" data-item-id="${escapeAttr(
+      <article class="checkpoint ${readingCount ? "checkpoint-reading" : ""}" data-section-id="${escapeAttr(section.id)}" data-item-id="${escapeAttr(
         item.id
       )}">
         <div class="checkpoint-main">
           <div class="checkpoint-kicker">
             <span class="checkpoint-id">${escapeHtml(item.id)}</span>
-            ${statusPill(response.status)}
+            ${readingCount ? "" : statusPill(response.status)}
           </div>
           <h4>${escapeHtml(item.item)}</h4>
           ${item.descriptionLabel ? `
@@ -782,20 +883,49 @@
           ` : ""}
           <p class="checkpoint-criteria">${escapeHtml(item.criteria)}</p>
         </div>
-        <div class="checkpoint-control">
-          <label>Status</label>
-          <select data-response-field="status">
-            ${statusOptions.map(
-              (option) =>
-                `<option value="${escapeAttr(option)}" ${response.status === option ? "selected" : ""}>${escapeHtml(option)}</option>`
-            ).join("")}
-          </select>
-          <label>${escapeHtml(fieldLabel)}</label>
-          <textarea data-response-field="remarks" placeholder="${escapeAttr(fieldLabel)}">${escapeHtml(
-            response.remarks || ""
-          )}</textarea>
-        </div>
+        ${readingCount ? renderReadingControls(item, response) : `
+          <div class="checkpoint-control">
+            <label>Status</label>
+            <select data-response-field="status">
+              ${statusOptions.map(
+                (option) =>
+                  `<option value="${escapeAttr(option)}" ${response.status === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+              ).join("")}
+            </select>
+            <label>${escapeHtml(fieldLabel)}</label>
+            <textarea data-response-field="remarks" placeholder="${escapeAttr(fieldLabel)}">${escapeHtml(
+              response.remarks || ""
+            )}</textarea>
+          </div>
+        `}
       </article>
+    `;
+  }
+
+  function renderReadingControls(item, response) {
+    const readings = getReadingValues(response, item.readingCount);
+    const average = calculateAveragePoint(readings);
+    return `
+      <div class="reading-inputs">
+        <div class="reading-entry-grid">
+          ${readings.map((value, index) => `
+            <label>
+              Reading ${index + 1}
+              <input type="number" step="any" inputmode="decimal" data-reading-index="${index}" value="${escapeAttr(value)}" />
+            </label>
+          `).join("")}
+        </div>
+        <div class="reading-summary-row">
+          <label class="reading-summary-control reading-average">
+            ${escapeHtml(item.averageLabel || "Average Point")}
+            <output data-reading-average>${escapeHtml(formatAveragePoint(average)) || "-"}</output>
+          </label>
+          <label class="reading-summary-control">
+            ${escapeHtml(item.curveValueLabel || "Curve Value")}
+            <input type="number" step="any" inputmode="decimal" data-response-field="curveValue" value="${escapeAttr(response.curveValue || "")}" />
+          </label>
+        </div>
+      </div>
     `;
   }
 
@@ -874,6 +1004,24 @@
         response[input.dataset.responseField] = input.value;
         persistActiveSubmission(false);
         if (input.dataset.responseField === "status") els.auditSummary.innerHTML = renderSummary(submission);
+        renderSidebar();
+      });
+    });
+
+    els.checklistSections.querySelectorAll("[data-reading-index]").forEach((input) => {
+      input.addEventListener("input", () => {
+        const checkpoint = input.closest("[data-item-id]");
+        const response = getItemResponse(submission, checkpoint.dataset.itemId);
+        const item = submission.templateSnapshot.sections
+          .flatMap((section) => section.items)
+          .find((candidate) => candidate.id === checkpoint.dataset.itemId);
+        response.readings = getReadingValues(response, item.readingCount);
+        response.readings[Number(input.dataset.readingIndex)] = input.value;
+        const average = calculateAveragePoint(response.readings);
+        const output = checkpoint.querySelector("[data-reading-average]");
+        if (output) output.textContent = formatAveragePoint(average) || "-";
+        persistActiveSubmission(false);
+        els.auditSummary.innerHTML = renderSummary(submission);
         renderSidebar();
       });
     });
@@ -1031,9 +1179,11 @@
                 submission.updatedAt
               )}</p>
               <div class="tag-row">
-                <span class="tag">${stats.ok}/${stats.total} OK</span>
-                <span class="tag">${stats.notOk} Not OK</span>
-                <span class="tag">${stats.pending} Pending</span>
+                ${submission.templateSnapshot?.photoComplianceDenominator
+                  ? `<span class="tag">${stats.daysDocumented}/${stats.total} days</span><span class="tag">${stats.compliancePercent.toFixed(1)}% compliance</span>`
+                  : submission.templateId === REBOUND_HAMMER_TEMPLATE_ID
+                    ? `<span class="tag">${stats.ok}/${stats.total} areas complete</span><span class="tag">${stats.pending} Awaiting Readings</span>`
+                    : `<span class="tag">${stats.ok}/${stats.total} OK</span><span class="tag">${stats.notOk} Not OK</span><span class="tag">${stats.pending} Pending</span>`}
                 <span class="tag">${stats.photos} Photos</span>
               </div>
             </div>
@@ -1143,6 +1293,10 @@
             remarks: "",
             photos: []
           };
+        }
+        if (item.readingCount) {
+          const response = submission.itemResponses[item.id];
+          response.readings = Array.from({ length: item.readingCount }, (_, index) => response.readings?.[index] ?? "");
         }
       });
     });
@@ -1406,6 +1560,41 @@
 
   function getStats(submission) {
     ensureSubmissionShape(submission);
+    const reqPhotos = Object.values(submission.photoEvidence || {}).reduce(
+      (sum, evidence) => sum + (evidence.photos?.length || 0),
+      0
+    );
+    if (submission.templateId === REBOUND_HAMMER_TEMPLATE_ID) {
+      const items = submission.templateSnapshot.sections.flatMap((section) => section.items);
+      const complete = items.filter((item) => areReadingsComplete(getItemResponse(submission, item.id), item.readingCount)).length;
+      return {
+        total: items.length,
+        ok: complete,
+        notOk: 0,
+        partial: 0,
+        na: 0,
+        pending: Math.max(0, items.length - complete),
+        photos: reqPhotos
+      };
+    }
+    const complianceDenominator = Math.floor(Number(submission.templateSnapshot.photoComplianceDenominator) || 0);
+    if (complianceDenominator > 0) {
+      const requirements = submission.templateSnapshot.photoRequirements || [];
+      const daysDocumented = requirements.filter((requirement) =>
+        (submission.photoEvidence[requirement.id]?.photos || []).length > 0
+      ).length;
+      return {
+        total: complianceDenominator,
+        ok: daysDocumented,
+        notOk: 0,
+        partial: 0,
+        na: 0,
+        pending: Math.max(0, complianceDenominator - daysDocumented),
+        photos: reqPhotos,
+        daysDocumented,
+        compliancePercent: daysDocumented / complianceDenominator * 100
+      };
+    }
     const responses = Object.values(submission.itemResponses || {});
     const total = submission.templateSnapshot.sections.reduce((sum, section) => sum + section.items.length, 0);
     const ok = responses.filter((response) => response.status === "OK").length;
@@ -1413,11 +1602,29 @@
     const na = responses.filter((response) => response.status === "N/A").length;
     const partial = responses.filter((response) => response.status === "Partial OK").length;
     const pending = Math.max(0, total - ok - notOk - na - partial);
-    const reqPhotos = Object.values(submission.photoEvidence || {}).reduce(
-      (sum, evidence) => sum + (evidence.photos?.length || 0),
-      0
-    );
     return { total, ok, notOk, partial, na, pending, photos: reqPhotos };
+  }
+
+  function getReadingValues(response, count) {
+    return Array.from({ length: Number(count) || 0 }, (_, index) => response.readings?.[index] ?? "");
+  }
+
+  function calculateAveragePoint(readings) {
+    const values = readings
+      .map((value) => value === "" || value == null ? NaN : Number(value))
+      .filter(Number.isFinite);
+    return values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
+  }
+
+  function formatAveragePoint(value) {
+    return value == null ? "" : value.toFixed(2);
+  }
+
+  function areReadingsComplete(response, count) {
+    const readings = getReadingValues(response, count);
+    return readings.length === Number(count) && readings.every((value) =>
+      value !== "" && value != null && Number.isFinite(Number(value))
+    );
   }
 
   function getTemplateStats(template) {
@@ -1433,12 +1640,20 @@
     if (!submission) return;
     const stats = getStats(submission);
     els.sidebarReportName.textContent = submission.title || "New audit";
-    const metrics = [
-      ["OK", stats.ok],
-      ["Not OK", stats.notOk],
-      ["Pending", stats.pending],
-      ["Photos", stats.photos]
-    ];
+    const metrics = submission.templateSnapshot.photoComplianceDenominator
+      ? [
+          ["Days", `${stats.daysDocumented}/${stats.total}`],
+          ["Compliance", `${stats.compliancePercent.toFixed(1)}%`],
+          ["Photos", stats.photos]
+        ]
+      : submission.templateId === REBOUND_HAMMER_TEMPLATE_ID
+        ? [["Complete", `${stats.ok}/${stats.total}`], ["Photos", stats.photos]]
+        : [
+            ["OK", stats.ok],
+            ["Not OK", stats.notOk],
+            ["Pending", stats.pending],
+            ["Photos", stats.photos]
+          ];
     if (stats.partial) metrics.splice(2, 0, ["Partial OK", stats.partial]);
     els.sidebarMetrics.innerHTML = metrics
       .map(
@@ -1588,16 +1803,22 @@
       Math.min(PHOTO_LIMIT, Math.floor(Number(forcedPhotoLimit || normalized.photoLimit) || PHOTO_LIMIT))
     );
     normalized.photoLimit = templatePhotoLimit;
-    normalized.siteFields = standardizeSiteFields(
-      (normalized.siteFields?.length ? normalized.siteFields : defaultTemplate.siteFields).map((field) => ({
+    const normalizedSiteFields = (normalized.siteFields?.length ? normalized.siteFields : defaultTemplate.siteFields).map((field) => ({
         id: field.id || slugify(field.label),
         label: field.label,
         type: field.type || "text",
         options: field.options || [],
         allowOther: Boolean(field.allowOther),
         otherLabel: field.otherLabel || "",
-        required: Boolean(field.required)
-      }))
+        required: Boolean(field.required),
+        readOnly: Boolean(field.readOnly),
+        autoFillFromPrevious: Array.isArray(field.autoFillFromPrevious)
+          ? field.autoFillFromPrevious.map(String).filter(Boolean)
+          : []
+      }));
+    normalized.siteFields = (normalized.siteFieldsMode === "exact"
+      ? normalizedSiteFields
+      : standardizeSiteFields(normalizedSiteFields)
     ).filter((field) => !omittedFieldIds.has(field.id));
     normalized.sections = (normalized.sections || []).map((section, sectionIndex) => ({
       id: section.id || slugify(section.title || `section-${sectionIndex + 1}`),
@@ -1609,6 +1830,9 @@
         criteria: item.criteria || item.requirement || "",
         inputLabel: item.inputLabel || "Remarks",
         descriptionLabel: item.descriptionLabel || "",
+        readingCount: Math.max(0, Math.floor(Number(item.readingCount) || 0)),
+        averageLabel: item.averageLabel || "Average Point",
+        curveValueLabel: item.curveValueLabel || "",
         statusOptions: Array.isArray(item.statusOptions) ? item.statusOptions.map(String).filter(Boolean) : []
       }))
     }));
@@ -1701,6 +1925,33 @@
       .join("");
     const sectionHtml = template.sections
       .map((section) => {
+        if (section.items.some((item) => item.readingCount)) {
+          const rows = section.items.map((item) => {
+            const response = getItemResponse(submission, item.id);
+            const readings = getReadingValues(response, item.readingCount);
+            const average = calculateAveragePoint(readings);
+            const readingCells = readings.map((value, index) =>
+              `<span><strong>R${index + 1}</strong> ${escapeHtml(value || "-")}</span>`
+            ).join("");
+            return `
+              <tr>
+                <td>${escapeHtml(item.item)}</td>
+                <td><div class="print-reading-values">${readingCells}</div></td>
+                <td>${escapeHtml(formatAveragePoint(average) || "-")}</td>
+                <td>${escapeHtml(response.curveValue || "-")}</td>
+              </tr>
+            `;
+          }).join("");
+          return `
+            <section class="print-section">
+              <h2>${escapeHtml(section.title)}</h2>
+              <table class="print-table print-reading-table">
+                <thead><tr><th>Pit / Test Area</th><th>Readings 1-10</th><th>Average Point</th><th>Curve Value</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </section>
+          `;
+        }
         const rows = section.items
           .map((item) => {
             const response = getItemResponse(submission, item.id);
@@ -1772,6 +2023,33 @@
       `
       : "";
 
+    const printSummary = template.photoComplianceDenominator
+      ? [
+          ["Curing Days Documented", `${stats.daysDocumented}/${stats.total}`],
+          ["Photos Submitted", stats.photos],
+          ["Curing Compliance", `${stats.compliancePercent.toFixed(1)}%`]
+        ]
+      : template.id === REBOUND_HAMMER_TEMPLATE_ID
+        ? [
+            ["Test Areas", stats.total],
+            ["Complete", stats.ok],
+            ["Awaiting Readings", stats.pending],
+            ["Photos", stats.photos]
+          ]
+        : [
+            ["Total", stats.total],
+            ["OK", stats.ok],
+            ["Not OK", stats.notOk],
+            ...(stats.partial ? [["Partial OK", stats.partial]] : []),
+            ["Pending", stats.pending],
+            ["Photos", stats.photos]
+          ];
+    const printSummaryHtml = `
+      <div class="print-summary">
+        ${printSummary.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong><br />${escapeHtml(value)}</div>`).join("")}
+      </div>
+    `;
+
     els.printRoot.innerHTML = `
       <div class="print-cover">
         <h1>${escapeHtml(template.name)}</h1>
@@ -1781,14 +2059,7 @@
           <div><strong>Draft Last Updated:</strong> ${escapeHtml(formatDateTime(submission.updatedAt))}</div>
         </div>
       </div>
-      <div class="print-summary">
-        <div><strong>Total</strong><br />${stats.total}</div>
-        <div><strong>OK</strong><br />${stats.ok}</div>
-        <div><strong>Not OK</strong><br />${stats.notOk}</div>
-        ${stats.partial ? `<div><strong>Partial OK</strong><br />${stats.partial}</div>` : ""}
-        <div><strong>Pending</strong><br />${stats.pending}</div>
-        <div><strong>Photos</strong><br />${stats.photos}</div>
-      </div>
+      ${printSummaryHtml}
       ${sectionHtml}
       ${photoSection}
     `;

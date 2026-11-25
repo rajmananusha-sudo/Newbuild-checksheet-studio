@@ -373,6 +373,18 @@ button svg,
   padding: 9px 10px;
 }
 
+.field-control input[readonly] {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.field-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .field-control textarea,
 .checkpoint-control textarea,
 .checkpoint-description-control textarea,
@@ -484,6 +496,60 @@ button svg,
 .checkpoint-control {
   display: grid;
   gap: 10px;
+}
+
+.checkpoint-reading {
+  display: block;
+}
+
+.checkpoint-reading .checkpoint-main {
+  margin-bottom: 14px;
+}
+
+.reading-inputs {
+  display: grid;
+  gap: 14px;
+}
+
+.reading-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reading-entry-grid label,
+.reading-summary-control {
+  display: grid;
+  gap: 6px;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reading-entry-grid input,
+.reading-summary-control input,
+.reading-average output {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.reading-summary-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 260px));
+  gap: 12px;
+}
+
+.reading-average output {
+  display: flex;
+  align-items: center;
+  font-weight: 800;
 }
 
 .photo-uploader {
@@ -803,6 +869,14 @@ button svg,
     grid-template-columns: 1fr;
   }
 
+  .reading-entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reading-summary-row {
+    grid-template-columns: 1fr;
+  }
+
   .workspace-heading h2 {
     font-size: 21px;
   }
@@ -885,6 +959,35 @@ button svg,
 
   .print-table th {
     background: #e2e8f0;
+  }
+
+  .print-reading-table {
+    table-layout: fixed;
+    font-size: 9px;
+  }
+
+  .print-reading-table th:nth-child(1) {
+    width: 18%;
+  }
+
+  .print-reading-table th:nth-child(2) {
+    width: 52%;
+  }
+
+  .print-reading-table th:nth-child(3),
+  .print-reading-table th:nth-child(4) {
+    width: 15%;
+  }
+
+  .print-reading-values {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px 6px;
+  }
+
+  .print-reading-values span {
+    font-size: 8px;
+    white-space: nowrap;
   }
 
   .print-photos {
